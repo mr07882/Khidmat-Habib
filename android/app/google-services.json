@@ -1,0 +1,64 @@
+{
+  "project_info": {
+    "project_number": "780690874879",
+    "firebase_url": "https://kpsiajapp.firebaseio.com",
+    "project_id": "kpsiajapp",
+    "storage_bucket": "kpsiajapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780690874879:android:245efdc6d3f511885e07ca",
+        "android_client_info": {
+          "package_name": "com.kpsiaj"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "780690874879-3un4lbbkin4sssf8mm6nt2ddmkkpc5bl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kpsiaj",
+            "certificate_hash": "70994d7e82f109c61389857a18c3dd23c45b78cc"
+          }
+        },
+        {
+          "client_id": "780690874879-i085ra606oipo2augqc1f24nte20vcet.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kpsiaj",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "780690874879-n5gshoqgi4hrqcb3i9b9rfv54nt0oa7h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kpsiaj",
+            "certificate_hash": "99e70c1f101088d62ca2668690d2d769f29bef25"
+          }
+        },
+        {
+          "client_id": "780690874879-pbi3vr91rein2es42n9hlpjedlvfo3vq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOdTeaAriAJ1GT1TjU5V2QVWNdau_BfPg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "780690874879-pbi3vr91rein2es42n9hlpjedlvfo3vq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

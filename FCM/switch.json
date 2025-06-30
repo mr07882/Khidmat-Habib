@@ -1,0 +1,14 @@
+[
+  {
+    "subscriptionName": "Death Anniversaries",
+    "dbName": "deathAnniversaries"
+  },
+  {
+    "subscriptionName": "Death News",
+    "dbName": "deathNews"
+  },
+  {
+    "subscriptionName": "News & Events",
+    "dbName": "events"
+  }
+]
