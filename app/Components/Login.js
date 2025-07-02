@@ -73,10 +73,6 @@ const Login = ({ onLogin, error }) => {
       <TouchableOpacity onPress={() => onLogin?.('signup')} style={styles.linkContainer}>
         <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkHighlight}>Sign Up</Text></Text>
       </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => onLogin?.('backToStart')} style={styles.linkContainer}>
-        <Text style={styles.linkText}>Back to Start</Text>
-      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 };
