@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import ReactNativeBiometrics from 'react-native-biometrics';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Login = ({ onLogin, error }) => {
   const [identifier, setIdentifier] = useState('');
@@ -61,11 +62,6 @@ const Login = ({ onLogin, error }) => {
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.biometricButton} onPress={handleBiometricLogin}>
-        <Image source={require('../../assets/logo.webp')} style={styles.biometricIcon} />
-        <Text style={styles.biometricText}>Login with Biometrics</Text>
-      </TouchableOpacity>
-
       <TouchableOpacity onPress={() => onLogin?.('resetPassword')} style={styles.linkContainer}>
         <Text style={styles.linkText}>Forgot password? <Text style={styles.linkHighlight}>Reset Password</Text></Text>
       </TouchableOpacity>
@@ -73,6 +69,13 @@ const Login = ({ onLogin, error }) => {
       <TouchableOpacity onPress={() => onLogin?.('signup')} style={styles.linkContainer}>
         <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkHighlight}>Sign Up</Text></Text>
       </TouchableOpacity>
+
+      {/* Biometric button at the bottom center */}
+      <View style={styles.biometricButtonContainer} pointerEvents="box-none">
+        <TouchableOpacity style={styles.fingerprintButton} onPress={handleBiometricLogin}>
+          <Icon name="fingerprint" size={32} color="#715054" />
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -135,35 +138,29 @@ const styles = StyleSheet.create({
     color: '#715054',
     fontWeight: '600',
   },
-  biometricButton: {
-    flexDirection: 'row',
+  biometricButtonContainer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 0,
+    right: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+  },
+  fingerprintButton: {
     backgroundColor: '#fff',
     borderColor: '#715054',
     borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 10,
-    marginBottom: 8,
+    borderRadius: 32,
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#715054',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
-    width: '100%',
-    maxWidth: 280, // increased from 320 to 340
-  },
-  biometricIcon: {
-    width: 28,
-    height: 28,
-    marginRight: 10,
-    tintColor: '#715054',
-  },
-  biometricText: {
-    color: '#715054',
-    fontSize: 16,
-    fontWeight: '600',
+    elevation: 3,
   },
   error: {
     color: 'red',
