@@ -34,7 +34,7 @@ const Login = ({ onLogin, error }) => {
     >
       <Image source={require('../../assets/logo.webp')} style={styles.logo} />
 
-      <Text style={styles.title}>User Login</Text>
+      <Text style={styles.title}>Welcome To KPSIAJ</Text>
 
       <TextInput
         style={styles.input}

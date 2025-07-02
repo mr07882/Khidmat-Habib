@@ -23,8 +23,6 @@ import LoginScreen from './LoginScreen';
 import SignupScreen from './SignupScreen';
 import Profile from './Profile';
 import BusinessPlace from './BusinessPlace';
-import StartScreen from './StartScreen';
-import AdminLogin from './AdminLogin';
 import EventsCalendar from './EventsCalendar';
 
 const Donation = {
@@ -57,7 +55,5 @@ export {
   SignupScreen,
   Profile,
   BusinessPlace,
-  StartScreen,
-  AdminLogin,
   EventsCalendar,
 };

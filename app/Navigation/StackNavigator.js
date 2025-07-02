@@ -52,17 +52,6 @@ const StackNavigator = () => {
               headerRight: () => <HeaderRight />,
             }}>
 
-            {/* From Code B */}
-            <Stack.Screen
-              name="StartScreen"
-              component={Screens.StartScreen}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="AdminLogin"
-              component={Screens.AdminLogin}
-              options={{headerShown: false}}
-            />
             <Stack.Screen
               name="Login"
               component={Screens.LoginScreen}
