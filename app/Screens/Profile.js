@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../Config/AppConfigData';
@@ -17,6 +17,7 @@ const Profile = () => {
   const [editBizIndex, setEditBizIndex] = useState(null);
   const [editEduForm, setEditEduForm] = useState({ institution: '', year: '', description: '' });
   const [editBizForm, setEditBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+  const [photoModal, setPhotoModal] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
   const [jcicState, setJcicState] = useState(null);
@@ -143,7 +144,18 @@ const Profile = () => {
     <ScrollView style={styles.container}>
       {/* Personal Details */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Personal Details</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
+          <Text style={styles.sectionTitle}>Personal Details</Text>
+          <View style={{ flex: 1 }} />
+          {user.FaceID ? (
+            <TouchableOpacity onPress={() => setPhotoModal(true)} style={{ alignSelf: 'flex-start' }}>
+              <Image
+                source={user.FaceID.startsWith('http') ? { uri: user.FaceID } : require('../../assets/femaleDummy.webp')}
+                style={styles.profilePhoto}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
         <View style={styles.detailRow}><Text style={styles.label}>Name:</Text><Text style={styles.value}>{user.name}</Text></View>
         <View style={styles.detailRow}><Text style={styles.label}>Phone:</Text><Text style={styles.value}>{user.number}</Text></View>
         <View style={styles.detailRow}><Text style={styles.label}>JCIC:</Text><Text style={styles.value}>{user.jcic}</Text></View>
@@ -252,6 +264,18 @@ const Profile = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Photo Modal */}
+      <Modal visible={photoModal} transparent animationType="fade" onRequestClose={() => setPhotoModal(false)}>
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setPhotoModal(false)}>
+          <View pointerEvents="box-none">
+            <Image
+              source={user.FaceID && user.FaceID.startsWith('http') ? { uri: user.FaceID } : require('../../assets/femaleDummy.webp')}
+              style={{ width: 300, height: 300, borderRadius: 12, backgroundColor: '#eee', resizeMode: 'cover' }}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 };
@@ -277,6 +301,15 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 8, marginBottom: 10 },
   modalBtn: { marginLeft: 10, padding: 8 },
   modalBtnSave: { marginLeft: 10, padding: 8, backgroundColor: '#4B2E2B', borderRadius: 5 },
+  profilePhoto: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    marginLeft: 10,
+    backgroundColor: '#eee',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
 });
 
 export default Profile;
