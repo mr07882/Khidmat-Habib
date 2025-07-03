@@ -272,3 +272,8 @@ export {
   setConfirmationForPhoneAuthInRedux,
   getAllRullsAndRegulations,
 };
+
+export const setUserId = userId => ({
+  type: 'SET_USER_ID',
+  userId,
+});

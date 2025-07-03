@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useDispatch } from 'react-redux';
 
 import Login from '../Components/Login';
 import ResetPasswordRequest from '../Components/ResetPasswordRequest';
 import ResetPasswordOtp from '../Components/ResetPasswordOtp';
+import { setUserId } from '../Redux/actions/authAction';
 
 const API_URL = 'http://10.0.2.2:5000'; // Change to your backend URL
 
@@ -14,6 +16,7 @@ const LoginScreen = ({ navigation }) => {
   const [resetEmail, setResetEmail] = useState('');
   const [resetError, setResetError] = useState('');
   const [loginError, setLoginError] = useState('');
+  const dispatch = useDispatch();
 
   const handleLogin = async (jcic, password) => {
     setLoginError('');
@@ -52,6 +55,8 @@ const LoginScreen = ({ navigation }) => {
       if (!res.ok) throw new Error('Invalid JCIC or password');
       // Save JCIC to AsyncStorage
       await AsyncStorage.setItem('JCIC', jcic);
+      // Set JCIC in Redux
+      dispatch(setUserId(jcic));
       // Pass JCIC via navigation
       navigation.replace('Home', { JCIC: jcic });
     } catch (err) {

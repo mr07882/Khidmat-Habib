@@ -11,6 +11,7 @@ import Logoline from './Logoline';
 import MainPageBanners from './MainPageBanners';
 import GoogleAuth from './GoogleAuth';
 import DeathAnniversaries from './DeathAnniversaries';
+export { default as MembershipCard } from './MembershipCard';
 
 export {
   ConnectUsComp,

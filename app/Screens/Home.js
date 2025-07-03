@@ -80,10 +80,11 @@ function Home(props) {
         <SafeAreaView style={styles.mainscreen}>
           <ScrollView>
             {!!props.allFlags && !!props.allFlags.mainPageBannerFlag && (
-              <Components.MainPageBanners
-                navigation={props.navigation}
-                mainPageBanners={props.mainPageBanners}
-              />
+              // <Components.MainPageBanners
+              //   navigation={props.navigation}
+              //   mainPageBanners={props.mainPageBanners}
+              // />
+              <Components.MembershipCard userId={props.userId} />
             )}
             <Components.Buttons
               navigateProp={props.navigation}
@@ -137,6 +138,7 @@ const mapStateToProps = state => {
     extraBtns: state.reducer.extraBtns,
     donation: state.reducer.donation,
     buttonStyles: state.reducer.telethonButton,
+    userId: state.reducer.userId, // Add userId from reducer (ensure this is set in your auth flow)
   };
 };
 export default connect(mapStateToProps)(Home);

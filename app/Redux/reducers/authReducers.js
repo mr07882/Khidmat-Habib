@@ -88,6 +88,9 @@ const reducer = (
     case 'RULLS_AND_REGULATIONS': {
       return {...state, rullsAndRegulations: action.rullsAndRegulations};
     }
+    case 'SET_USER_ID': {
+      return { ...state, userId: action.userId };
+    }
     default: {
       return state;
     }

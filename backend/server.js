@@ -25,6 +25,13 @@ const MemberSchema = new mongoose.Schema({
   email: String,
   // New fields for profile
   name: String,
+  "Father/Husband": String, // add this
+  Surname: String,           // add this
+  CNIC: String,              // add this
+  FaceID: String,            // <-- add this for profile image
+  BloodGroup: String,        // <-- add this for blood group
+  DOB: String,               // <-- add this for date of birth
+  IslamicDOB: String,        // <-- add this for Islamic date of birth
   education: [
     {
       institution: String,
@@ -271,6 +278,13 @@ app.get('/profile/:jcic', async (req, res) => {
     number: member.number,
     education: member.education || [],
     business: member.business || [],
+    fatherHusband: member['Father/Husband'],
+    surname: member.Surname,
+    cnic: member.CNIC,
+    FaceID: member.FaceID, // <-- add this line to include FaceID in the response
+    BloodGroup: member.BloodGroup, // <-- add this line
+    DOB: member.DOB, // <-- add this line
+    IslamicDOB: member.IslamicDOB, // <-- add this line
   });
 });
 
