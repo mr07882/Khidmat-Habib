@@ -8,6 +8,9 @@ import QRCode from 'react-native-qrcode-svg';
 
 const formatJCIC = jcic => jcic ? String(jcic).replace(/(\d{4})(?=\d)/g, '$1 ') : '';
 
+const CARD_WIDTH = 320; // You can adjust this for your app's layout
+const CARD_HEIGHT = Math.round(CARD_WIDTH * 54 / 85.6);
+
 const MembershipCard = ({ userId }) => {
   const [member, setMember] = useState(null);
   const [imageError, setImageError] = useState(false);
@@ -54,11 +57,11 @@ const MembershipCard = ({ userId }) => {
   };
 
   if (!userId) return <Text style={{color:'red'}}>No userId provided</Text>;
-  if (!member) return <Text style={{color:'red'}}>No member data found for userId: {userId}</Text>;
+  if (!member) return null;
 
   // Card front
   const CardFront = (
-    <View style={styles.cardContent}>
+    <View style={[styles.cardContent, { width: CARD_WIDTH, height: CARD_HEIGHT }]}> 
       {/* Faded background logo at bottom right */}
       <Image source={logo} style={styles.bgLogo} pointerEvents="none" />
       <View style={styles.headerRow}>
@@ -70,7 +73,7 @@ const MembershipCard = ({ userId }) => {
         </View>
       </View>
       <View style={styles.infoRow}>
-        <View style={{justifyContent: 'flex-start'}}>
+        <View style={{alignItems: 'center', justifyContent: 'flex-start', width: 70}}>
           <TouchableOpacity>
             <Image
               source={(!imageError && isValidImageUrl(member.FaceID))
@@ -102,7 +105,7 @@ const MembershipCard = ({ userId }) => {
 
   // Card back
   const CardBack = (
-    <View style={[styles.cardContent, styles.backCardContent]}>
+    <View style={[styles.cardContent, styles.backCardContent, { width: CARD_WIDTH, height: CARD_HEIGHT }]}> 
       <Image source={logo} style={styles.bgLogo} pointerEvents="none" />
       <View style={{alignItems: 'center', marginBottom: 10, width: '100%'}}>
         <Text style={[styles.jcic, {textAlign: 'center', marginBottom: 8, alignSelf: 'center', width: '100%'}]}>{formatJCIC(member.jcic)}</Text>
@@ -203,7 +206,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
   picCol: {
     alignItems: 'center',
@@ -211,10 +214,10 @@ const styles = StyleSheet.create({
     flex: 0.9,
   },
   faceImg: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
+    width: 48, // square size, like passport photo
+    height: 48,
+    borderRadius: 1, // slight rounding for photo corners
+    marginRight: 8,
     backgroundColor: '#eee',
   },
   modalOverlay: {
@@ -256,7 +259,6 @@ const styles = StyleSheet.create({
   },
   signatureBlock: {
     alignItems: 'center',
-    marginTop: 2,
     width: 70,
   },
   hr: {
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   secretaryText: {
-    fontSize: 11,
+    fontSize: 9, // smaller font size
     color: '#222',
     textAlign: 'center',
     marginTop: 0,
