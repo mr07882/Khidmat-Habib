@@ -11,12 +11,12 @@ import {colors} from '../Config/AppConfigData';
 
 const formsList = [
   {key: 'NominationForm', label: 'Nomination Form', screen: 'NominationForm'},
-  {key: 'NominationWithdrawal', label: 'Nomination Withdrawal'},
-  {key: 'CandidateRetirement', label: 'Candidate Retirement'},
-  {key: 'FamilyParticipation', label: 'Family Participation Program'},
+  {key: 'NominationWithdrawal', label: 'Nomination Withdrawal', screen: 'NominationWithdrawal'},
+  {key: 'CandidateRetirement', label: 'Candidate Retirement', screen: 'CandidateRetirement'},
+  {key: 'FamilyParticipation', label: 'Family Participation Program', screen: 'FamilyParticipation'},
   {key: 'MembershipForm', label: 'Membership form & Form A'},
-  {key: 'DuplicateCard', label: 'Duplicate Card'},
-  {key: 'DeathInfo', label: 'Death Information Form'},
+  {key: 'DuplicateCardForm', label: 'Duplicate Card', screen: 'DuplicateCardForm'},
+  {key: 'DeathInfo', label: 'Death Information Form', screen: 'DeathInfoForm'},
   {key: 'TakhtiRequest', label: 'Takhti Request Form'},
   {key: 'WadiAuthority', label: 'Wadi e Zainab (sa) Authority Letter'},
   {key: 'EducationDonationBox', label: 'Education Donation Box'},

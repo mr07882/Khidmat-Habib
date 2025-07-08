@@ -66,8 +66,7 @@ const PhotoUpload = ({photo, setPhoto}) => {
   };
 
   return (
-    <View style={{marginBottom: 12}}>
-      <Text style={styles.label}>Recent Color Photograph (1x1 inch)</Text>
+    <View style={{marginBottom: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: colors.primaryColor, paddingTop: 10}}>
       <TouchableOpacity style={styles.photoUpload} onPress={pickImage}>
         {photo ? (
           <Image source={{uri: photo}} style={styles.photo} />
@@ -85,17 +84,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 10,
     marginBottom: 2,
-    color: colors.primaryColor,
+    color: colors.secondryColor,
   },
   photoUpload: {
     width: 80,
     height: 80,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.primaryColor,
+    borderColor: colors.secondryColor,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: 'rgba(167, 154, 154, 0.8)', 
     alignSelf: 'flex-start',
   },
   photo: {
@@ -104,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   photoText: {
-    color: colors.primaryColor,
+    color: colors.secondryColor,
     fontSize: 13,
   },
 });

@@ -24,6 +24,7 @@ import SignupScreen from './SignupScreen';
 import Profile from './Profile';
 import BusinessPlace from './BusinessPlace';
 import EventsCalendar from './EventsCalendar';
+import DeathInfoForm from './DeathInfoForm';
 
 const Donation = {
   Causes,
@@ -56,4 +57,5 @@ export {
   Profile,
   BusinessPlace,
   EventsCalendar,
+  DeathInfoForm,
 };

@@ -10,6 +10,10 @@ import SplashScreen from 'react-native-splash-screen';
 import {colors} from '../Config/AppConfigData';
 import {InAppUpdate} from '../Functions';
 import NominationForm from '../Screens/NominationForm';
+import NominationWithdrawal from '../Screens/NominationWithdrawal';
+import CandidateRetirement from '../Screens/CandidateRetirement';
+import FamilyParticipation from '../Screens/FamilyParticipation';
+import DuplicateCardForm from '../Screens/DuplicateCardForm';
 
 const Stack = createStackNavigator();
 
@@ -193,6 +197,15 @@ const StackNavigator = () => {
               options={{headerLeft: () => <HeaderLeft name="Forms" />}}
             />
             <Stack.Screen name="NominationForm" component={NominationForm} />
+            <Stack.Screen name="NominationWithdrawal" component={NominationWithdrawal} />
+            <Stack.Screen name="CandidateRetirement" component={CandidateRetirement} />
+            <Stack.Screen name="FamilyParticipation" component={FamilyParticipation} />
+            <Stack.Screen name="DuplicateCardForm" component={DuplicateCardForm} />
+            <Stack.Screen
+              name="DeathInfoForm"
+              component={Screens.DeathInfoForm}
+              options={{headerLeft: () => <HeaderLeft name="Death Info" />}}
+            />
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaView>

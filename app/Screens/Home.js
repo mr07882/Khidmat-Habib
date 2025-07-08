@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   LogBox,
   StyleSheet,
+  FlatList,
+  Dimensions
 } from 'react-native';
 import {connect, useDispatch} from 'react-redux';
 import * as Components from '../Components';
@@ -15,10 +17,16 @@ import database from '@react-native-firebase/database';
 import messaging from '@react-native-firebase/messaging';
 import {Text} from '../Components/core';
 import {updateDonationCart} from '../Redux/actions/donationAction';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIsFocused } from '@react-navigation/native';
+
+const FAMILY_STORAGE_KEY = 'family_jcics';
 
 function Home(props) {
   const [year, setYear] = useState('');
+  const [jcicList, setJcicList] = useState([]);
   const dispatch = useDispatch();
+  const isFocused = useIsFocused();
   LogBox.ignoreAllLogs();
 
   const getYearFromDB = () => {
@@ -50,6 +58,24 @@ function Home(props) {
       });
   };
 
+  // Fetch all JCICs (own + family)
+  useEffect(() => {
+    const fetchJcics = async () => {
+      let arr = [];
+      const userJCIC = props.userId;
+      if (userJCIC) arr.push(userJCIC);
+      try {
+        const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
+        if (stored) {
+          const famArr = JSON.parse(stored);
+          famArr.forEach(j => { if (j && !arr.includes(j)) arr.push(j); });
+        }
+      } catch {}
+      setJcicList(arr);
+    };
+    fetchJcics();
+  }, [props.userId, isFocused]);
+
   useEffect(() => {
     messageOpenOnKillMode();
     getYearFromDB();
@@ -80,11 +106,21 @@ function Home(props) {
         <SafeAreaView style={styles.mainscreen}>
           <ScrollView>
             {!!props.allFlags && !!props.allFlags.mainPageBannerFlag && (
-              // <Components.MainPageBanners
-              //   navigation={props.navigation}
-              //   mainPageBanners={props.mainPageBanners}
-              // />
-              <Components.MembershipCard userId={props.userId} />
+              // One-card-per-swipe carousel using FlatList
+              <FlatList
+                data={jcicList}
+                keyExtractor={item => String(item)}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                snapToAlignment="center"
+                contentContainerStyle={{ paddingVertical: 10 }}
+                renderItem={({ item }) => (
+                  <View style={{ width: Dimensions.get('window').width, alignItems: 'center', justifyContent: 'center' }}>
+                    <Components.MembershipCard userId={item} />
+                  </View>
+                )}
+              />
             )}
             <Components.Buttons
               navigateProp={props.navigation}

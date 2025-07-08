@@ -246,30 +246,47 @@ app.post('/reset-password/verify', async (req, res) => {
 // GET PROFILE DATA
 app.get('/profile/:jcic', async (req, res) => {
   let { jcic } = req.params;
-  let parsedJCIC = null;
   let member = null;
-  // Try parsing as int64
+  let tried = [];
+  // Try as Long
   try {
-    parsedJCIC = Long.fromString(jcic);
-  } catch (e) {
-    parsedJCIC = null;
-  }
-  // Try int64 match
-  if (parsedJCIC !== null) {
-    member = await Member.findOne({ JCIC: parsedJCIC });
-  }
-  // If not found, try string match
+    const parsedLong = Long.fromString(jcic);
+    member = await Member.findOne({ JCIC: parsedLong });
+    tried.push('Long');
+  } catch (e) {}
+  // Try as string
   if (!member) {
     member = await Member.findOne({ JCIC: jcic });
+    tried.push('String');
   }
-  // If still not found, try stringified int64
+  // Try as number
   if (!member) {
     try {
-      member = await Member.findOne({ JCIC: parseInt(jcic) });
+      const asNum = parseInt(jcic);
+      if (!isNaN(asNum)) {
+        member = await Member.findOne({ JCIC: asNum });
+        tried.push('Number');
+      }
+    } catch (e) {}
+  }
+  // Try as stringified number
+  if (!member) {
+    try {
+      const asNumStr = String(parseInt(jcic));
+      member = await Member.findOne({ JCIC: asNumStr });
+      tried.push('Stringified Number');
+    } catch (e) {}
+  }
+  // Try as stringified Long
+  if (!member) {
+    try {
+      const asLong = Long.fromString(jcic);
+      member = await Member.findOne({ JCIC: asLong.toString() });
+      tried.push('Stringified Long');
     } catch (e) {}
   }
   if (!member) {
-    return res.status(404).json({ error: 'User not found', jcicReceived: jcic });
+    return res.status(404).json({ error: 'User not found', jcicReceived: jcic, tried });
   }
   res.json({
     name: member.name,
@@ -433,6 +450,38 @@ app.get('/businesses/search', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to search businesses', details: err.message });
   }
+});
+
+// FAMILY MEMBER ADD: INITIATE
+app.post('/family/add/initiate', async (req, res) => {
+  const { userJCIC, familyJCIC } = req.body;
+  // For now, always return true (in future, check relationship)
+  let parsedFamilyJCIC;
+  try {
+    parsedFamilyJCIC = Long.isLong(familyJCIC) ? familyJCIC : Long.fromString(String(familyJCIC));
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JCIC' });
+  }
+  const member = await Member.findOne({ JCIC: parsedFamilyJCIC });
+  if (!member) return res.status(404).json({ error: 'Member not found' });
+  // Always return true for now
+  // Send OTP to family member's email/phone
+  const otp = (Math.floor(100000 + Math.random() * 900000)).toString();
+  await Otp.deleteMany({ JCIC: String(familyJCIC) });
+  await Otp.create({ JCIC: String(familyJCIC), otp });
+  await sendOtpEmail(member.email, otp);
+  await sendOtpSms(member.number, otp);
+  res.json({ success: true, email: member.email, number: member.number });
+});
+
+// FAMILY MEMBER ADD: VERIFY
+app.post('/family/add/verify', async (req, res) => {
+  const { familyJCIC, otp } = req.body;
+  // Check OTP
+  const otpDoc = await Otp.findOne({ JCIC: String(familyJCIC), otp });
+  if (!otpDoc) return res.status(400).json({ error: 'Incorrect otp' });
+  // Optionally, you could mark this familyJCIC as verified for the userJCIC in a new collection
+  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 5000;

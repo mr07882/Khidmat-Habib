@@ -1,9 +1,10 @@
 import React, {useState} from 'react';
-import {View, Text, ScrollView, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import {colors} from '../Config/AppConfigData';
-import LabeledTextInput from '../Components/FormElements/LabeledTextInput';
+import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import PhotoUpload from '../Components/FormElements/PhotoUpload';
+import SubmitButton from '../Components/FormElements/SubmitButton';
 
 const officeOptions = [
   'President',
@@ -49,63 +50,78 @@ const NominationForm = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 32}}>
+      {/* Information Section */}
       <Text style={styles.title}>Nomination Form</Text>
+      <Text style={styles.infoText}>
+        This form is for candidates who wish to be nominated for Jamaat elections. Please fill in your details below to submit your nomination request.
+      </Text>
+
+      {/* Section 1: Candidate Details */}
       <Text style={styles.section}>Section 1: Candidate Details</Text>
       <PhotoUpload photo={photo} setPhoto={setPhoto} />
-      <LabeledTextInput label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Full Name" />
+      <InputField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Full Name" />
       <RadioGroup
         options={[
-          {label: 'Mr.', value: 'male'},
-          {label: 'Ms.', value: 'female'},
+          {label: <Text style={{color: colors.secondryColor}}>Mr.</Text>, value: 'male'},
+          {label: <Text style={{color: colors.secondryColor}}>Ms.</Text>, value: 'female'},
         ]}
         value={gender}
         onChange={setGender}
+        radioColor={colors.secondryColor}
       />
-      <LabeledTextInput label={gender === 'male' ? 's/o' : 'd/o - w/o'} value={fatherOrHusband} onChangeText={setFatherOrHusband} placeholder={gender === 'male' ? 's/o' : 'd/o - w/o'} />
-      <LabeledTextInput label="Surname" value={surname} onChangeText={setSurname} placeholder="Surname" />
-      <LabeledTextInput label="JCIC / JID No." value={jid} onChangeText={setJid} placeholder="JCIC / JID No." />
-      <LabeledTextInput label="Contact No." value={contact} onChangeText={setContact} placeholder="Contact No." keyboardType="phone-pad" />
-      <LabeledTextInput label="Email (Optional)" value={email} onChangeText={setEmail} placeholder="Email (Optional)" keyboardType="email-address" />
+      <InputField label={gender === 'male' ? 's/o' : 'd/o - w/o'} value={fatherOrHusband} onChangeText={setFatherOrHusband} placeholder={gender === 'male' ? 's/o' : 'd/o - w/o'} />
+      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Surname" />
+      <InputField label="JCIC / JID No." value={jid} onChangeText={setJid} placeholder="JCIC / JID No." />
+      <InputField label="Contact No." value={contact} onChangeText={setContact} placeholder="Contact No." keyboardType="phone-pad" />
+      <InputField label="Email (Optional)" value={email} onChangeText={setEmail} placeholder="Email (Optional)" keyboardType="email-address" />
       <Text style={styles.label}>Office Applying For</Text>
       {officeOptions.map(opt => (
         <View key={opt} style={{marginBottom: 4}}>
           <RadioGroup
-            options={[{label: opt, value: opt}]}
+            options={[{label: <Text style={{color: colors.secondryColor}}>{opt}</Text>, value: opt}]}
             value={office}
             onChange={setOffice}
+            radioColor={colors.secondryColor}
           />
         </View>
       ))}
-      <LabeledTextInput label="Date/Year of Membership with Jamaat" value={membershipDate} onChangeText={setMembershipDate} placeholder="Date/Year of Membership" />
-      <LabeledTextInput label="Date/Year of Birth" value={dob} onChangeText={setDob} placeholder="Date/Year of Birth" />
+      <InputField label="Date/Year of Membership with Jamaat" value={membershipDate} onChangeText={setMembershipDate} placeholder="Date/Year of Membership" />
+      <InputField label="Date/Year of Birth" value={dob} onChangeText={setDob} placeholder="Date/Year of Birth" />
+
+      {/* Section 2: Proposer & Seconder Details */}
       <Text style={styles.section}>Section 2: Proposer & Seconder Details</Text>
-      <LabeledTextInput label="Proposed By - Name" value={proposerName} onChangeText={setProposerName} placeholder="Name" />
-      <LabeledTextInput label="Surname" value={proposerSurname} onChangeText={setProposerSurname} placeholder="Surname" />
-      <LabeledTextInput label="JCIC/JID No." value={proposerJid} onChangeText={setProposerJid} placeholder="JCIC/JID No." />
-      <LabeledTextInput label="Contact No." value={proposerContact} onChangeText={setProposerContact} placeholder="Contact No." keyboardType="phone-pad" />
-      <LabeledTextInput label="Email (Optional)" value={proposerEmail} onChangeText={setProposerEmail} placeholder="Email (Optional)" keyboardType="email-address" />
-      <LabeledTextInput label="Signature" value={proposerSignature} onChangeText={setProposerSignature} placeholder="Signature" />
-      <LabeledTextInput label="Seconded By - Name" value={seconderName} onChangeText={setSeconderName} placeholder="Name" />
-      <LabeledTextInput label="Surname" value={seconderSurname} onChangeText={setSeconderSurname} placeholder="Surname" />
-      <LabeledTextInput label="JCIC/JID No." value={seconderJid} onChangeText={setSeconderJid} placeholder="JCIC/JID No." />
-      <LabeledTextInput label="Contact No." value={seconderContact} onChangeText={setSeconderContact} placeholder="Contact No." keyboardType="phone-pad" />
-      <LabeledTextInput label="Email (Optional)" value={seconderEmail} onChangeText={setSeconderEmail} placeholder="Email (Optional)" keyboardType="email-address" />
-      <LabeledTextInput label="Signature" value={seconderSignature} onChangeText={setSeconderSignature} placeholder="Signature" />
+      <InputField label="Proposed By - Name" value={proposerName} onChangeText={setProposerName} placeholder="Name" />
+      <InputField label="Surname" value={proposerSurname} onChangeText={setProposerSurname} placeholder="Surname" />
+      <InputField label="JCIC/JID No." value={proposerJid} onChangeText={setProposerJid} placeholder="JCIC/JID No." />
+      <InputField label="Contact No." value={proposerContact} onChangeText={setProposerContact} placeholder="Contact No." keyboardType="phone-pad" />
+      <InputField label="Email (Optional)" value={proposerEmail} onChangeText={setProposerEmail} placeholder="Email (Optional)" keyboardType="email-address" />
+      <InputField label="Signature" value={proposerSignature} onChangeText={setProposerSignature} placeholder="Signature" />
+      <InputField label="Seconded By - Name" value={seconderName} onChangeText={setSeconderName} placeholder="Name" />
+      <InputField label="Surname" value={seconderSurname} onChangeText={setSeconderSurname} placeholder="Surname" />
+      <InputField label="JCIC/JID No." value={seconderJid} onChangeText={setSeconderJid} placeholder="JCIC/JID No." />
+      <InputField label="Contact No." value={seconderContact} onChangeText={setSeconderContact} placeholder="Contact No." keyboardType="phone-pad" />
+      <InputField label="Email (Optional)" value={seconderEmail} onChangeText={setSeconderEmail} placeholder="Email (Optional)" keyboardType="email-address" />
+      <InputField label="Signature" value={seconderSignature} onChangeText={setSeconderSignature} placeholder="Signature" />
+
+      {/* Section 3: Candidate’s Consent & Declaration */}
       <Text style={styles.section}>Section 3: Candidate’s Consent & Declaration</Text>
       <Text style={styles.declarationText}>I, the candidate, hereby consent to this nomination and affirm that:</Text>
       <Text style={styles.declarationText}>- I will abide by the Jamaat’s Constitution and Bye-Laws.</Text>
       <Text style={styles.declarationText}>- I will serve diligently if elected.</Text>
       <RadioGroup
         options={[
-          {label: 'Yes', value: true},
-          {label: 'No', value: false},
+          {label: <Text style={{color: colors.secondryColor}}>Yes</Text>, value: true},
+          {label: <Text style={{color: colors.secondryColor}}>No</Text>, value: false},
         ]}
         value={isFiler}
         onChange={setIsFiler}
+        radioColor={colors.secondryColor}
       />
-      <LabeledTextInput label="My name on the ballot paper should appear as" value={ballotName} onChangeText={setBallotName} placeholder="Ballot Name" />
-      <LabeledTextInput label="Signature of Candidate" value={candidateSignature} onChangeText={setCandidateSignature} placeholder="Signature of Candidate" />
-      <LabeledTextInput label="Date" value={candidateDate} onChangeText={setCandidateDate} placeholder="Date" />
+      <InputField label="My name on the ballot paper should appear as" value={ballotName} onChangeText={setBallotName} placeholder="Ballot Name" />
+      <InputField label="Signature of Candidate" value={candidateSignature} onChangeText={setCandidateSignature} placeholder="Signature of Candidate" />
+      <InputField label="Date" value={candidateDate} onChangeText={setCandidateDate} placeholder="Date" />
+
+      {/* Section 4: Terms & Conditions */}
       <Text style={styles.section}>Section 4: Terms & Conditions</Text>
       <Text style={styles.declarationText}>By submitting this form, the candidate agrees to:</Text>
       <Text style={styles.declarationText}>- Pay the applicable nomination fee:</Text>
@@ -119,9 +135,7 @@ const NominationForm = () => {
       <Text style={styles.declarationText}>  Jamaat reserves the right to reject any nomination without explanation.</Text>
       <Text style={styles.declarationText}>  False information will lead to disqualification.</Text>
       <Text style={styles.declarationText}>  Withdrawal must be submitted in writing before the election date.</Text>
-      <TouchableOpacity style={styles.submitButton}>
-        <Text style={styles.submitButtonText}>Submit</Text>
-      </TouchableOpacity>
+      <SubmitButton label="Submit" onPress={() => {}} style={{ marginTop: 24 }} />
     </ScrollView>
   );
 };
@@ -140,6 +154,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     opacity: 1,
   },
+  infoText: {
+    fontSize: 14,
+    color: '#000',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
   section: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -156,9 +176,14 @@ const styles = StyleSheet.create({
     color: colors.secondryColor,
     opacity: 1,
   },
+  inputLabel: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.secondryColor,
+  },
   declarationText: {
     fontSize: 14,
-    color: colors.secondryColor,
+    color: '#000',
     marginBottom: 2,
     opacity: 1,
   },
