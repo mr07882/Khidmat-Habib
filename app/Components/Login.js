@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const Login = ({ onLogin, error }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
     onLogin?.(identifier, password);
@@ -47,14 +48,22 @@ const Login = ({ onLogin, error }) => {
         autoCapitalize="none"
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <View style={styles.passwordInputContainer}>
+        <TextInput
+          style={[styles.input, { marginBottom: 0, flex: 1 }]}
+          placeholder="Password"
+          placeholderTextColor="#999"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setShowPassword((prev) => !prev)}
+        >
+          <Icon name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#715054" />
+        </TouchableOpacity>
+      </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -165,6 +174,21 @@ const styles = StyleSheet.create({
   error: {
     color: 'red',
     marginBottom: 8,
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 320,
+    marginBottom: 16,
+    backgroundColor: 'transparent',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 4,
+    zIndex: 2,
+    backgroundColor: 'transparent',
   },
 });
 
