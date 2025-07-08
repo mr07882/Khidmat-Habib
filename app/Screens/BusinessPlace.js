@@ -131,8 +131,44 @@ const BusinessPlace = () => {
                 <Text style={styles.modalLabel}>Services:</Text>
                 <Text style={styles.modalText}>{selectedBiz.services || '-'}</Text>
                 <Text style={styles.modalLabel}>Contact:</Text>
-                <Text style={styles.modalText}>Phone: {selectedBiz.contact?.phone || '-'}</Text>
-                <Text style={styles.modalText}>Email: {selectedBiz.contact?.email || selectedBiz.ownerEmail || '-'}</Text>
+                {/* Phone clickable */}
+                <Text style={styles.modalText}>
+                  Phone: {selectedBiz.contact?.phone ? (
+                    <Text
+                      style={{ color: '#1976d2', textDecorationLine: 'underline' }}
+                      onPress={() => {
+                        if (selectedBiz.contact?.phone) {
+                          const phone = selectedBiz.contact.phone.replace(/[^0-9+]/g, '');
+                          const url = `tel:${phone}`;
+                          import('react-native').then(({ Linking }) => Linking.openURL(url));
+                        }
+                      }}
+                    >
+                      {selectedBiz.contact.phone}
+                    </Text>
+                  ) : (
+                    '-'
+                  )}
+                </Text>
+                {/* Email clickable */}
+                <Text style={styles.modalText}>
+                  Email: {selectedBiz.contact?.email || selectedBiz.ownerEmail ? (
+                    <Text
+                      style={{ color: '#1976d2', textDecorationLine: 'underline' }}
+                      onPress={() => {
+                        const email = selectedBiz.contact?.email || selectedBiz.ownerEmail;
+                        if (email) {
+                          const url = `mailto:${email}`;
+                          import('react-native').then(({ Linking }) => Linking.openURL(url));
+                        }
+                      }}
+                    >
+                      {selectedBiz.contact?.email || selectedBizWW.ownerEmail}
+                    </Text>
+                  ) : (
+                    '-'
+                  )}
+                </Text>
                 <Text style={styles.modalText}>Address: {selectedBiz.address || '-'}</Text>
                 <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                   <Text style={styles.closeBtnText}>Close</Text>
