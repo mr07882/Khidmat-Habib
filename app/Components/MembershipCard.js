@@ -5,6 +5,9 @@ const logo = require('../../assets/logo.webp');
 const secSign = require('../../assets/SecSign.png');
 import { getMemberDetails } from '../Functions/Functions';
 import QRCode from 'react-native-qrcode-svg';
+// --- Added for offline support ---
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 const formatJCIC = jcic => jcic ? String(jcic).replace(/(\d{4})(?=\d)/g, '$1 ') : '';
 
@@ -17,17 +20,70 @@ const MembershipCard = ({ userId }) => {
   const [flipped, setFlipped] = useState(false);
   const animatedValue = useRef(new Animated.Value(0)).current;
   const imagePressedRef = useRef(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   // Helper to check if FaceID is a valid URL
   const isValidImageUrl = url => typeof url === 'string' && url.startsWith('http');
 
-  useEffect(() => {
-    if (userId) {
-      getMemberDetails(userId).then(data => {
-        setMember(data);
-        setImageError(false); // Reset image error when member changes
-      });
+  // Key for AsyncStorage
+  const storageKey = userId ? `membership_card_${userId}` : null;
+
+  // Fetch and cache member details
+  const fetchAndCacheMember = async (uid) => {
+    try {
+      const data = await getMemberDetails(uid);
+      setMember(data);
+      setImageError(false);
+      if (storageKey) {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(data));
+      }
+    } catch (e) {
+      // fallback to local storage if fetch fails
+      if (storageKey) {
+        const cached = await AsyncStorage.getItem(storageKey);
+        if (cached) {
+          setMember(JSON.parse(cached));
+        } else {
+          setMember(null);
+        }
+      }
     }
+  };
+
+  // Load from cache only
+  const loadFromCache = async () => {
+    if (storageKey) {
+      const cached = await AsyncStorage.getItem(storageKey);
+      if (cached) {
+        setMember(JSON.parse(cached));
+      } else {
+        setMember(null);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected) {
+        setIsOffline(false);
+        fetchAndCacheMember(userId);
+      } else {
+        setIsOffline(true);
+        loadFromCache();
+      }
+    });
+    // Initial check
+    NetInfo.fetch().then(state => {
+      if (state.isConnected) {
+        setIsOffline(false);
+        fetchAndCacheMember(userId);
+      } else {
+        setIsOffline(true);
+        loadFromCache();
+      }
+    });
+    return () => unsubscribe && unsubscribe();
   }, [userId]);
 
   // Flip animation

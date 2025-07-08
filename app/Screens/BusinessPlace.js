@@ -166,9 +166,10 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.primaryColor,
+    color: colors.secondryColor,
     marginBottom: 10,
     textAlign: 'center',
+
   },
   searchInput: {
     backgroundColor: '#ECEAE4',
