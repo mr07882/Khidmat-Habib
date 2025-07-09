@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput,
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../Config/AppConfigData';
-
-const API_URL = 'http://10.0.2.2:5000';
+import { API_URL } from '../config';
 
 const Profile = () => {
   const [user, setUser] = useState(null);

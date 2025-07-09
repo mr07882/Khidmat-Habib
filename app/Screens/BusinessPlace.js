@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { colors } from '../Config/AppConfigData';
 import * as Icn from '../Helpers/icons';
-
-const API_URL = 'http://10.0.2.2:5000'; // Change to your backend URL if needed
+import { API_URL } from '../config';
 
 const BusinessPlace = () => {
   const [businesses, setBusinesses] = useState([]);

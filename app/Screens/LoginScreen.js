@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
+import { API_URL } from '../config';
 
 import Login from '../Components/Login';
 import ResetPasswordRequest from '../Components/ResetPasswordRequest';
 import ResetPasswordOtp from '../Components/ResetPasswordOtp';
 import { setUserId } from '../Redux/actions/authAction';
-
-const API_URL = 'http://10.0.2.2:5000'; // Change to your backend URL
 
 const LoginScreen = ({ navigation }) => {
   const [step, setStep] = useState('login');

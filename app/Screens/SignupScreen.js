@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import Signup from '../Components/Signup';
 import OtpScreen from '../Components/OtpScreen';
 import { Alert } from 'react-native';
-
-const API_URL = 'http://10.0.2.2:5000'; // Change to your backend URL
+import { API_URL } from '../config';
 
 const SignupScreen = ({ navigation }) => {
   const [step, setStep] = useState('signup');

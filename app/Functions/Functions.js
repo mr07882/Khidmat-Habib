@@ -7,6 +7,7 @@ import RNFetchBlob from 'rn-fetch-blob';
 import {Text} from '../Components/core';
 import {permissions} from '.';
 import database from '@react-native-firebase/database';
+import { API_URL } from '../config';
 
 const onShare = async (url, type) => {
   let data = `data:${type};base64,`;
@@ -256,8 +257,6 @@ const checkIsWholeNumber = num => +num === Math.floor(+num);
 // Fetch member details from Firebase Members collection by userId
 export const getMemberDetails = async userId => {
   try {
-    // Replace with your actual backend URL
-    const API_URL = 'http://10.0.2.2:5000';
     const res = await fetch(`${API_URL}/profile/${userId}`);
     if (!res.ok) return null;
     const data = await res.json();

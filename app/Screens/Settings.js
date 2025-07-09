@@ -16,6 +16,7 @@ import {colors} from '../Config/AppConfigData';
 import switches from '../../FCM/switch.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
+import { API_URL } from '../config';
 
 const FAMILY_STORAGE_KEY = 'family_jcics';
 
@@ -170,7 +171,7 @@ const Settings = () => {
     } catch {}
     setIsFamilyLoading(true);
     try {
-      const res = await fetch('http://10.0.2.2:5000/family/add/initiate', {
+      const res = await fetch(API_URL + '/family/add/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userJCIC, familyJCIC: familyJCICInput }),
@@ -199,7 +200,7 @@ const Settings = () => {
     }
     setIsFamilyLoading(true);
     try {
-      const res = await fetch('http://10.0.2.2:5000/family/add/verify', {
+      const res = await fetch(API_URL + '/family/add/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ familyJCIC: pendingFamilyJCIC, otp: familyOtp }),
