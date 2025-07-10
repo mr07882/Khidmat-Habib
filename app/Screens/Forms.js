@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import {colors} from '../Config/AppConfigData';
+import { screensEnabled } from 'react-native-screens';
 
 const formsList = [
   {key: 'NominationForm', label: 'Nomination Form', screen: 'NominationForm'},
@@ -17,14 +18,15 @@ const formsList = [
   {key: 'MembershipForm', label: 'Membership form & Form A'},
   {key: 'DuplicateCardForm', label: 'Duplicate Card', screen: 'DuplicateCardForm'},
   {key: 'DeathInfo', label: 'Death Information Form', screen: 'DeathInfoForm'},
-  {key: 'TakhtiRequest', label: 'Takhti Request Form'},
-  {key: 'WadiAuthority', label: 'Wadi e Zainab (sa) Authority Letter'},
-  {key: 'EducationDonationBox', label: 'Education Donation Box'},
-  {key: 'HallBooking', label: 'Hall booking'},
+  {key: 'TakhtiRequest', label: 'Takhti Request Form' ,screen: 'TakhtiRepairForm'},
+  {key: 'WadiAuthority', label: 'Wadi e Zainab (sa) Authority Letter', screen: 'WadiEzainab'},
+  {key: 'EducationDonationBox', label: 'Education Donation Box' , screen: 'EducationDonationBox'},
+  {key: 'HallBooking', label: 'Hall booking' , screen: 'HallBookingForm'},
   {key: 'BusBooking', label: 'Bus Booking'},
   {key: 'NikahFile', label: 'Nikah File – Gen Information Form / Rules'},
   {key: 'SportsMembership', label: 'Fatimiyah Sports Complex – Membership Form'},
   {key: 'GraveRepair', label: 'Grave Repair Form'},
+  
 ];
 
 const Forms = ({navigation}) => {
@@ -65,7 +67,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: colors.primaryColor,
+    color: colors.secondryColor,
     alignSelf: 'center',
   },
   list: {

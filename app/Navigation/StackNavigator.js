@@ -14,6 +14,11 @@ import NominationWithdrawal from '../Screens/NominationWithdrawal';
 import CandidateRetirement from '../Screens/CandidateRetirement';
 import FamilyParticipation from '../Screens/FamilyParticipation';
 import DuplicateCardForm from '../Screens/DuplicateCardForm';
+import TakhtiRepairForm from '../Screens/TakhtiRepairForm';
+import WadiEzainab from '../Screens/WadiEzainab';
+import EducationDonationBox from '../Screens/EducationDonationBox';
+import HallBookingForm from '../Screens/HallBookingForm';
+
 
 const Stack = createStackNavigator();
 
@@ -206,6 +211,12 @@ const StackNavigator = () => {
               component={Screens.DeathInfoForm}
               options={{headerLeft: () => <HeaderLeft name="Death Info" />}}
             />
+            <Stack.Screen name="TakhtiRepairForm" component={TakhtiRepairForm} />
+            <Stack.Screen name="WadiEzainab" component={WadiEzainab} />
+            <Stack.Screen name="EducationDonationBox" component={EducationDonationBox} />
+            <Stack.Screen name="HallBookingForm" component={HallBookingForm} />
+
+            
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaView>

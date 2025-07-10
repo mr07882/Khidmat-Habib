@@ -25,6 +25,7 @@ import Profile from './Profile';
 import BusinessPlace from './BusinessPlace';
 import EventsCalendar from './EventsCalendar';
 import DeathInfoForm from './DeathInfoForm';
+import TakhtiRepairForm from './TakhtiRepairForm';
 
 const Donation = {
   Causes,
@@ -58,4 +59,5 @@ export {
   BusinessPlace,
   EventsCalendar,
   DeathInfoForm,
+  TakhtiRepairForm,
 };

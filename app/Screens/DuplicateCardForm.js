@@ -5,6 +5,7 @@ import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import PhotoUpload from '../Components/FormElements/PhotoUpload';
 import SubmitButton from '../Components/FormElements/SubmitButton';
+import AttachmentField from '../Components/FormElements/AttachmentField';
 
 const reasonOptions = [
   { label: 'My Card is lost', value: 'lost' },
@@ -116,30 +117,29 @@ const DuplicateCardForm = () => {
           style={styles.radioInline}
         />
       </View>
-      <View style={styles.rowAlign}>
-        <View style={{ flex: 1 }}>
-          <InputField label="Husband Name" value={husbandName} onChangeText={setHusbandName} placeholder="Husband Name" />
+      <View style={{ marginBottom: 8 }}>
+        <InputField label="Husband Name" value={husbandName} onChangeText={setHusbandName} placeholder="Husband Name" />
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-start', marginTop: 4 }}>
+          <RadioGroup
+            options={[
+              { label: <Text style={{ color: colors.secondryColor }}>Alive</Text>, value: true },
+              { label: <Text style={{ color: colors.secondryColor }}>Deceased</Text>, value: false },
+            ]}
+            value={husbandAlive}
+            onChange={setHusbandAlive}
+            radioColor={colors.secondryColor}
+            style={{ marginRight: 16 }}
+          />
+          <RadioGroup
+            options={[
+              { label: <Text style={{ color: colors.secondryColor }}>Khoja</Text>, value: 'khoja' },
+              { label: <Text style={{ color: colors.secondryColor }}>Non-Khoja</Text>, value: 'nonkhoja' },
+            ]}
+            value={husbandKhoja}
+            onChange={setHusbandKhoja}
+            radioColor={colors.secondryColor}
+          />
         </View>
-        <RadioGroup
-          options={[
-            { label: <Text style={{ color: colors.secondryColor }}>Alive</Text>, value: true },
-            { label: <Text style={{ color: colors.secondryColor }}>Deceased</Text>, value: false },
-          ]}
-          value={husbandAlive}
-          onChange={setHusbandAlive}
-          radioColor={colors.secondryColor}
-          style={styles.radioInline}
-        />
-        <RadioGroup
-          options={[
-            { label: <Text style={{ color: colors.secondryColor }}>Khoja</Text>, value: 'khoja' },
-            { label: <Text style={{ color: colors.secondryColor }}>Non-Khoja</Text>, value: 'nonkhoja' },
-          ]}
-          value={husbandKhoja}
-          onChange={setHusbandKhoja}
-          radioColor={colors.secondryColor}
-          style={styles.radioInline}
-        />
       </View>
       <InputField label="Husband Surname" value={husbandSurname} onChangeText={setHusbandSurname} placeholder="Husband Surname" />
       <InputField label="CNIC Number" value={cnic} onChangeText={setCnic} placeholder="CNIC Number" />
