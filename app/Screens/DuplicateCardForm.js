@@ -238,12 +238,21 @@ const DuplicateCardForm = () => {
 
       {/* Section 3: Additional Attachments */}
       <Text style={styles.section}>Section 3: Additional Attachments</Text>
-      <Text style={styles.inputLabel}>Attach CNIC/NICOP/PASSPORT/BFORM</Text>
-      <PhotoUpload photo={cnicAttachment} setPhoto={setCnicAttachment} boxColor={colors.secondryColor} labelColor={colors.secondryColor} />
-      <Text style={styles.inputLabel}>Attach Passport Size Photograph</Text>
-      <PhotoUpload photo={passportPhotoAttachment} setPhoto={setPassportPhotoAttachment} boxColor={colors.secondryColor} labelColor={colors.secondryColor} />
-      <Text style={styles.inputLabel}>Attach JCIC Card</Text>
-      <PhotoUpload photo={jcicCardAttachment} setPhoto={setJcicCardAttachment} boxColor={colors.secondryColor} labelColor={colors.secondryColor} />
+      <AttachmentField
+        label="Attach CNIC/NICOP/PASSPORT/BFORM"
+        file={cnicAttachment}
+        onPick={setCnicAttachment}
+      />
+      <AttachmentField
+        label="Attach Passport Size Photograph"
+        file={passportPhotoAttachment}
+        onPick={setPassportPhotoAttachment}
+      />
+      <AttachmentField
+        label="Attach JCIC Card"
+        file={jcicCardAttachment}
+        onPick={setJcicCardAttachment}
+      />
 
       {/* Section 4: Payment */}
       <Text style={styles.section}>Section 4: Payment</Text>

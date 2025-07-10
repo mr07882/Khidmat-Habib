@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { colors } from '../Config/AppConfigData';
-import PhotoUpload from '../Components/FormElements/PhotoUpload';
+import AttachmentField from '../Components/FormElements/AttachmentField';
 import SubmitButton from '../Components/FormElements/SubmitButton';
 
 const DeathInfoForm = () => {
@@ -99,20 +99,41 @@ const DeathInfoForm = () => {
 
       {/* Attachments Section */}
       <Text style={styles.sectionHeader}>Attachments</Text>
-      <Text style={styles.attachmentLabel}>Death Certificate</Text>
-      <PhotoUpload photo={deathCertAttachment} setPhoto={setDeathCertAttachment} />
-      <Text style={styles.attachmentLabel}>JCIC of Deceased</Text>
-      <PhotoUpload photo={deceasedJcicAttachment} setPhoto={setDeceasedJcicAttachment} />
-      <Text style={styles.attachmentLabel}>CNIC of Deceased</Text>
-      <PhotoUpload photo={deceasedCnicAttachment} setPhoto={setDeceasedCnicAttachment} />
-      <Text style={styles.attachmentLabel}>JCIC of Informer 1</Text>
-      <PhotoUpload photo={informer1JcicAttachment} setPhoto={setInformer1JcicAttachment} />
-      <Text style={styles.attachmentLabel}>CNIC of Informer 1</Text>
-      <PhotoUpload photo={informer1CnicAttachment} setPhoto={setInformer1CnicAttachment} />
-      <Text style={styles.attachmentLabel}>JCIC of Informer 2</Text>
-      <PhotoUpload photo={informer2JcicAttachment} setPhoto={setInformer2JcicAttachment} />
-      <Text style={styles.attachmentLabel}>CNIC of Informer 2</Text>
-      <PhotoUpload photo={informer2CnicAttachment} setPhoto={setInformer2CnicAttachment} />
+      <AttachmentField
+        label="Death Certificate"
+        file={deathCertAttachment}
+        onPick={setDeathCertAttachment}
+      />
+      <AttachmentField
+        label="JCIC of Deceased"
+        file={deceasedJcicAttachment}
+        onPick={setDeceasedJcicAttachment}
+      />
+      <AttachmentField
+        label="CNIC of Deceased"
+        file={deceasedCnicAttachment}
+        onPick={setDeceasedCnicAttachment}
+      />
+      <AttachmentField
+        label="JCIC of Informer 1"
+        file={informer1JcicAttachment}
+        onPick={setInformer1JcicAttachment}
+      />
+      <AttachmentField
+        label="CNIC of Informer 1"
+        file={informer1CnicAttachment}
+        onPick={setInformer1CnicAttachment}
+      />
+      <AttachmentField
+        label="JCIC of Informer 2"
+        file={informer2JcicAttachment}
+        onPick={setInformer2JcicAttachment}
+      />
+      <AttachmentField
+        label="CNIC of Informer 2"
+        file={informer2CnicAttachment}
+        onPick={setInformer2CnicAttachment}
+      />
 
       <SubmitButton title="Submit" onPress={() => { /* Handle form submission */ }} />
     </ScrollView>
