@@ -114,9 +114,19 @@ function Home(props) {
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 snapToAlignment="center"
-                contentContainerStyle={{ paddingVertical: 10 }}
+                contentContainerStyle={{ 
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                style={{ width: '100%' }}
                 renderItem={({ item }) => (
-                  <View style={{ width: Dimensions.get('window').width, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ 
+                    width: Dimensions.get('window').width, 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    paddingHorizontal: 10
+                  }}>
                     <Components.MembershipCard userId={item} />
                   </View>
                 )}

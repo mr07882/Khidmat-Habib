@@ -22,10 +22,10 @@ const formsList = [
   {key: 'WadiAuthority', label: 'Wadi e Zainab (sa) Authority Letter', screen: 'WadiEzainab'},
   {key: 'EducationDonationBox', label: 'Education Donation Box' , screen: 'EducationDonationBox'},
   {key: 'HallBooking', label: 'Hall booking' , screen: 'HallBookingForm'},
-  {key: 'BusBooking', label: 'Bus Booking'},
+  {key: 'BusBooking', label: 'Bus Booking', screen: 'BusBookingForm'},
   {key: 'NikahFile', label: 'Nikah File – Gen Information Form / Rules'},
   {key: 'SportsMembership', label: 'Fatimiyah Sports Complex – Membership Form'},
-  {key: 'GraveRepair', label: 'Grave Repair Form'},
+  {key: 'GraveRepair', label: 'Grave Repair Form', screen: 'GraveRepairForm'},
   
 ];
 

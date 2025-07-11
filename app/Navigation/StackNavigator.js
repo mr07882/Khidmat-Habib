@@ -18,6 +18,8 @@ import TakhtiRepairForm from '../Screens/TakhtiRepairForm';
 import WadiEzainab from '../Screens/WadiEzainab';
 import EducationDonationBox from '../Screens/EducationDonationBox';
 import HallBookingForm from '../Screens/HallBookingForm';
+import BusBookingForm from '../Screens/BusBookingForm';
+import GraveRepairForm from '../Screens/GraveRepairForm';
 
 
 const Stack = createStackNavigator();
@@ -215,6 +217,8 @@ const StackNavigator = () => {
             <Stack.Screen name="WadiEzainab" component={WadiEzainab} />
             <Stack.Screen name="EducationDonationBox" component={EducationDonationBox} />
             <Stack.Screen name="HallBookingForm" component={HallBookingForm} />
+            <Stack.Screen name="BusBookingForm" component={BusBookingForm} />
+            <Stack.Screen name="GraveRepairForm" component={GraveRepairForm} />
 
             
           </Stack.Navigator>

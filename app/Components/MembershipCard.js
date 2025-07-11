@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     elevation: 5,
-    margin: 10,
+    margin: 0,
     padding: 15,
     alignItems: 'stretch',
     minHeight: 210,

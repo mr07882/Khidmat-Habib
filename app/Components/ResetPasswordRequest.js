@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const ResetPasswordRequest = ({ onSubmit, error }) => {
+const ResetPasswordRequest = ({ onSubmit, error, onClose }) => {
   const [jcic, setJcic] = useState('');
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Icon name="close" size={24} color="#715054" />
+      </TouchableOpacity>
       <Text style={styles.title}>Reset Password</Text>
       <Text style={styles.subtitle}>Enter your JCIC number to receive an OTP on your registered email.</Text>
       <TextInput
@@ -74,6 +78,13 @@ const styles = StyleSheet.create({
   error: {
     color: 'red',
     marginBottom: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
   },
 });
 

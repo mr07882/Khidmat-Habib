@@ -1,15 +1,33 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const ResetPasswordOtp = ({ onSubmit, onResend, email, error }) => {
+const ResetPasswordOtp = ({ onSubmit, onResend, email, error, onClose }) => {
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Function to mask sensitive information
+  const maskInfo = (info) => {
+    if (!info) return '';
+    if (info.length <= 5) return info;
+    
+    const firstThree = info.substring(0, 3);
+    const lastTwo = info.substring(info.length - 2);
+    const maskedLength = info.length - 5;
+    const maskedPart = '*'.repeat(Math.min(maskedLength, 8)); // Max 8 asterisks
+    
+    return `${firstThree}${maskedPart}${lastTwo}`;
+  };
+  
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Icon name="close" size={24} color="#715054" />
+      </TouchableOpacity>
       <Text style={styles.title}>Enter OTP & New Password</Text>
       <Text style={styles.subtitle}>An OTP has been sent to your email:</Text>
-      <Text style={styles.info}>{email}</Text>
+      <Text style={styles.info}>{maskInfo(email)}</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter OTP"
@@ -108,6 +126,13 @@ const styles = StyleSheet.create({
   error: {
     color: 'red',
     marginBottom: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
   },
 });
 

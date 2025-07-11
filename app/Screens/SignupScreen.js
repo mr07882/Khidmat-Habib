@@ -40,7 +40,14 @@ const SignupScreen = ({ navigation }) => {
         body: JSON.stringify({ JCIC: jcicInput }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      if (!res.ok) {
+        if (res.status === 409) {
+          // User already exists - show error message inline
+          setError('An account with this JCIC already exists.');
+          return;
+        }
+        throw new Error(data.error || 'Failed to send OTP');
+      }
       setOtpInfo({ phone: data.number, email: data.email });
       setStep('otp');
     } catch (err) {
@@ -80,6 +87,7 @@ const SignupScreen = ({ navigation }) => {
       phone={otpInfo.phone}
       email={otpInfo.email}
       error={error}
+      onClose={() => navigation.replace('Login')}
     />
   );
 };

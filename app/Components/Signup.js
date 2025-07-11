@@ -24,7 +24,7 @@ const Signup = ({ onSignup, onGoToLogin, error }) => {
 
       <TextInput
         style={styles.input}
-        placeholder="JCIC No, Email or Phone"
+        placeholder="JCIC No"
         placeholderTextColor="#999"
         value={identifier}
         onChangeText={setIdentifier}

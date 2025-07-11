@@ -105,10 +105,10 @@ const LoginScreen = ({ navigation }) => {
   const handleResendOtp = () => handleResetRequest(resetJcic);
 
   if (step === 'resetRequest') {
-    return <ResetPasswordRequest onSubmit={handleResetRequest} error={resetError} />;
+    return <ResetPasswordRequest onSubmit={handleResetRequest} error={resetError} onClose={() => setStep('login')} />;
   }
   if (step === 'resetOtp') {
-    return <ResetPasswordOtp onSubmit={handleResetOtp} onResend={handleResendOtp} email={resetEmail} error={resetError} />;
+    return <ResetPasswordOtp onSubmit={handleResetOtp} onResend={handleResendOtp} email={resetEmail} error={resetError} onClose={() => navigation.replace('Signup')} />;
   }
   return <Login onLogin={handleLogin} error={loginError} />;
 };

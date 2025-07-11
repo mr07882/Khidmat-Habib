@@ -135,6 +135,33 @@ const Profile = () => {
       .catch(() => Alert.alert('Error', 'Failed to update business'));
   };
 
+  // Delete Business
+  const handleDeleteBusiness = () => {
+    Alert.alert(
+      'Delete Business',
+      'Are you sure you want to delete this business? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            fetch(`${API_URL}/profile/${jcicState}/business/${editBizIndex}`, {
+              method: 'DELETE',
+            })
+              .then(res => res.json())
+              .then(data => {
+                setUser(prev => ({ ...prev, business: data.business }));
+                setEditBizIndex(null);
+                Alert.alert('Success', 'Business deleted successfully');
+              })
+              .catch(() => Alert.alert('Error', 'Failed to delete business'));
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
   if (!user) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No user data found.</Text></View>;
   if (!jcicState) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No JCIC provided. Please login again.</Text></View>;
@@ -256,9 +283,18 @@ const Profile = () => {
             <TextInput placeholder="Contact Phone" style={styles.input} value={editBizForm.contactPhone} onChangeText={t => setEditBizForm(f => ({ ...f, contactPhone: t }))} />
             <TextInput placeholder="Contact Email" style={styles.input} value={editBizForm.contactEmail} onChangeText={t => setEditBizForm(f => ({ ...f, contactEmail: t }))} />
             <TextInput placeholder="Address" style={styles.input} value={editBizForm.address} onChangeText={t => setEditBizForm(f => ({ ...f, address: t }))} />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => setEditBizIndex(null)}><Text>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnSave} onPress={handleSaveEditBusiness}><Text style={{ color: '#fff' }}>Save</Text></TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+              <TouchableOpacity style={styles.modalBtnDelete} onPress={handleDeleteBusiness}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Delete</Text>
+              </TouchableOpacity>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity style={styles.modalBtn} onPress={() => setEditBizIndex(null)}>
+                  <Text>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalBtnSave} onPress={handleSaveEditBusiness}>
+                  <Text style={{ color: '#fff' }}>Save</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -300,6 +336,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 8, marginBottom: 10 },
   modalBtn: { marginLeft: 10, padding: 8 },
   modalBtnSave: { marginLeft: 10, padding: 8, backgroundColor: '#4B2E2B', borderRadius: 5 },
+  modalBtnDelete: { padding: 8, backgroundColor: '#d32f2f', borderRadius: 5, paddingHorizontal: 12 },
   profilePhoto: {
     width: 56,
     height: 56,

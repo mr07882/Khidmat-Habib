@@ -130,6 +130,12 @@ app.post('/signup/initiate', async (req, res) => {
     return res.status(400).json({ error: 'Invalid JCIC format' });
   }
 
+  // Check if user already exists in AppUsers collection
+  const existingUser = await AppUser.findOne({ JCIC });
+  if (existingUser) {
+    return res.status(409).json({ error: 'User already exists. Please login instead.' });
+  }
+
   let member = await Member.findOne({ JCIC: parsedJCIC });
   if (!member) return res.status(404).json({ error: 'Invalid JCIC' });
 
@@ -378,6 +384,28 @@ app.put('/profile/:jcic/business', async (req, res) => {
   member.business = cleanedBusiness;
   await member.save();
   res.json({ message: 'Business updated', business: member.business });
+});
+
+// DELETE endpoint to remove a specific business by index
+app.delete('/profile/:jcic/business/:index', async (req, res) => {
+  let { jcic, index } = req.params;
+  let parsedJCIC;
+  try {
+    parsedJCIC = Long.fromString(jcic);
+  } catch (e) {
+    parsedJCIC = null;
+  }
+  const member = await Member.findOne({ $or: [ { JCIC: parsedJCIC }, { JCIC: jcic } ] });
+  if (!member) return res.status(404).json({ error: 'User not found' });
+  
+  const businessIndex = parseInt(index);
+  if (isNaN(businessIndex) || businessIndex < 0 || businessIndex >= (member.business || []).length) {
+    return res.status(400).json({ error: 'Invalid business index' });
+  }
+  
+  member.business.splice(businessIndex, 1);
+  await member.save();
+  res.json({ message: 'Business deleted', business: member.business });
 });
 
 // GET ALL BUSINESSES WITH OWNER INFO
