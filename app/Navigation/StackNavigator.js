@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
 import {HeaderLeft, HeaderRight} from './components';
 import {NavigationContainer} from '@react-navigation/native';
@@ -9,6 +9,7 @@ import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
 import SplashScreen from 'react-native-splash-screen';
 import {colors} from '../Config/AppConfigData';
 import {InAppUpdate} from '../Functions';
+import AuthCheck from '../Components/AuthCheck';
 import NominationForm from '../Screens/NominationForm';
 import NominationWithdrawal from '../Screens/NominationWithdrawal';
 import CandidateRetirement from '../Screens/CandidateRetirement';
@@ -20,11 +21,23 @@ import EducationDonationBox from '../Screens/EducationDonationBox';
 import HallBookingForm from '../Screens/HallBookingForm';
 import BusBookingForm from '../Screens/BusBookingForm';
 import GraveRepairForm from '../Screens/GraveRepairForm';
+import NikahForm from '../Screens/NikahForm';
+import FSC_Form from '../Screens/FSC_Form';
 
 
 const Stack = createStackNavigator();
 
 const StackNavigator = () => {
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+
+  const handleAuthCheckComplete = ({ isLoggedIn, jcic }) => {
+    setIsLoggedIn(isLoggedIn);
+    setUserJCIC(jcic);
+    setIsAuthChecked(true);
+  };
+
   const linking = {
     prefixes: ['https://www.kpsiaj.org/app', 'https://kpsiaj.org/app'],
     config: {
@@ -36,6 +49,10 @@ const StackNavigator = () => {
       return Linking.getInitialURL();
     },
   };
+
+  if (!isAuthChecked) {
+    return <AuthCheck onAuthCheckComplete={handleAuthCheckComplete} />;
+  }
 
   return (
     <SafeAreaProvider>
@@ -51,6 +68,7 @@ const StackNavigator = () => {
           }}
           linking={linking}>
           <Stack.Navigator
+            initialRouteName={isLoggedIn ? "Home" : "Login"}
             screenOptions={{
               title: '',
               headerStyle: {
@@ -89,6 +107,7 @@ const StackNavigator = () => {
               name="Home"
               component={Screens.Home}
               options={{headerShown: false}}
+              initialParams={{ JCIC: userJCIC }}
             />
             <Stack.Screen
               name="NewsEvents"
@@ -219,6 +238,8 @@ const StackNavigator = () => {
             <Stack.Screen name="HallBookingForm" component={HallBookingForm} />
             <Stack.Screen name="BusBookingForm" component={BusBookingForm} />
             <Stack.Screen name="GraveRepairForm" component={GraveRepairForm} />
+            <Stack.Screen name="NikahForm" component={NikahForm} />
+            <Stack.Screen name="FSC_Form" component={FSC_Form} />
 
             
           </Stack.Navigator>

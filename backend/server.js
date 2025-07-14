@@ -32,6 +32,8 @@ const MemberSchema = new mongoose.Schema({
   BloodGroup: String,        // <-- add this for blood group
   DOB: String,               // <-- add this for date of birth
   IslamicDOB: String,        // <-- add this for Islamic date of birth
+  // Family members storage
+  familyMembers: [String],   // <-- add this to store family member JCICs
   education: [
     {
       institution: String,
@@ -510,6 +512,275 @@ app.post('/family/add/verify', async (req, res) => {
   if (!otpDoc) return res.status(400).json({ error: 'Incorrect otp' });
   // Optionally, you could mark this familyJCIC as verified for the userJCIC in a new collection
   res.json({ success: true });
+});
+
+// GET FAMILY MEMBERS FOR A USER
+app.get('/family/:jcic', async (req, res) => {
+  let { jcic } = req.params;
+  let member = null;
+  
+  // Try different JCIC formats
+  try {
+    const parsedLong = Long.fromString(jcic);
+    member = await Member.findOne({ JCIC: parsedLong });
+  } catch (e) {}
+  
+  if (!member) {
+    member = await Member.findOne({ JCIC: jcic });
+  }
+  
+  if (!member) {
+    try {
+      const asNum = parseInt(jcic);
+      if (!isNaN(asNum)) {
+        member = await Member.findOne({ JCIC: asNum });
+      }
+    } catch (e) {}
+  }
+  
+  if (!member) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  // Get family member details
+  const familyMembers = [];
+  if (member.familyMembers && member.familyMembers.length > 0) {
+    for (const familyJCIC of member.familyMembers) {
+      try {
+        const familyMember = await Member.findOne({ 
+          $or: [
+            { JCIC: Long.fromString(familyJCIC) },
+            { JCIC: familyJCIC },
+            { JCIC: parseInt(familyJCIC) }
+          ]
+        });
+        if (familyMember) {
+          familyMembers.push({
+            jcic: familyMember.JCIC,
+            name: familyMember.name,
+            email: familyMember.email,
+            number: familyMember.number,
+            fatherHusband: familyMember['Father/Husband'],
+            surname: familyMember.Surname,
+            cnic: familyMember.CNIC,
+            FaceID: familyMember.FaceID,
+            BloodGroup: familyMember.BloodGroup,
+            DOB: familyMember.DOB,
+            IslamicDOB: familyMember.IslamicDOB,
+          });
+        }
+      } catch (e) {
+        console.log('Error fetching family member:', familyJCIC, e);
+      }
+    }
+  }
+  
+  res.json({ familyMembers });
+});
+
+// ADD FAMILY MEMBER TO USER'S FAMILY LIST
+app.post('/family/:jcic/add', async (req, res) => {
+  let { jcic } = req.params;
+  const { familyJCIC } = req.body;
+  
+  let member = null;
+  
+  // Try different JCIC formats for user
+  try {
+    const parsedLong = Long.fromString(jcic);
+    member = await Member.findOne({ JCIC: parsedLong });
+  } catch (e) {}
+  
+  if (!member) {
+    member = await Member.findOne({ JCIC: jcic });
+  }
+  
+  if (!member) {
+    try {
+      const asNum = parseInt(jcic);
+      if (!isNaN(asNum)) {
+        member = await Member.findOne({ JCIC: asNum });
+      }
+    } catch (e) {}
+  }
+  
+  if (!member) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  // Verify family member exists
+  let familyMember = null;
+  try {
+    const parsedFamilyLong = Long.fromString(familyJCIC);
+    familyMember = await Member.findOne({ JCIC: parsedFamilyLong });
+  } catch (e) {}
+  
+  if (!familyMember) {
+    familyMember = await Member.findOne({ JCIC: familyJCIC });
+  }
+  
+  if (!familyMember) {
+    try {
+      const asNum = parseInt(familyJCIC);
+      if (!isNaN(asNum)) {
+        familyMember = await Member.findOne({ JCIC: asNum });
+      }
+    } catch (e) {}
+  }
+  
+  if (!familyMember) {
+    return res.status(404).json({ error: 'Family member not found' });
+  }
+  
+  // Initialize familyMembers array if it doesn't exist
+  if (!member.familyMembers) {
+    member.familyMembers = [];
+  }
+  
+  // Check if already added
+  if (member.familyMembers.includes(String(familyJCIC))) {
+    return res.status(409).json({ error: 'Family member already added' });
+  }
+  
+  // Add family member
+  member.familyMembers.push(String(familyJCIC));
+  await member.save();
+  
+  res.json({ 
+    message: 'Family member added successfully',
+    familyMembers: member.familyMembers 
+  });
+});
+
+// REMOVE FAMILY MEMBER FROM USER'S FAMILY LIST
+app.delete('/family/:jcic/remove/:familyJCIC', async (req, res) => {
+  let { jcic, familyJCIC } = req.params;
+  
+  let member = null;
+  
+  // Try different JCIC formats for user
+  try {
+    const parsedLong = Long.fromString(jcic);
+    member = await Member.findOne({ JCIC: parsedLong });
+  } catch (e) {}
+  
+  if (!member) {
+    member = await Member.findOne({ JCIC: jcic });
+  }
+  
+  if (!member) {
+    try {
+      const asNum = parseInt(jcic);
+      if (!isNaN(asNum)) {
+        member = await Member.findOne({ JCIC: asNum });
+      }
+    } catch (e) {}
+  }
+  
+  if (!member) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  if (!member.familyMembers) {
+    return res.status(404).json({ error: 'No family members found' });
+  }
+  
+  // Remove family member
+  const index = member.familyMembers.indexOf(String(familyJCIC));
+  if (index === -1) {
+    return res.status(404).json({ error: 'Family member not found in list' });
+  }
+  
+  member.familyMembers.splice(index, 1);
+  await member.save();
+  
+  res.json({ 
+    message: 'Family member removed successfully',
+    familyMembers: member.familyMembers 
+  });
+});
+
+// GET ALL MEMBERSHIP CARDS (USER + FAMILY) FOR OFFLINE SYNC
+app.get('/membership-cards/:jcic', async (req, res) => {
+  let { jcic } = req.params;
+  let member = null;
+  
+  // Try different JCIC formats for user
+  try {
+    const parsedLong = Long.fromString(jcic);
+    member = await Member.findOne({ JCIC: parsedLong });
+  } catch (e) {}
+  
+  if (!member) {
+    member = await Member.findOne({ JCIC: jcic });
+  }
+  
+  if (!member) {
+    try {
+      const asNum = parseInt(jcic);
+      if (!isNaN(asNum)) {
+        member = await Member.findOne({ JCIC: asNum });
+      }
+    } catch (e) {}
+  }
+  
+  if (!member) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  
+  // Get user's own card
+  const userCard = {
+    jcic: member.JCIC,
+    name: member.name,
+    email: member.email,
+    number: member.number,
+    fatherHusband: member['Father/Husband'],
+    surname: member.Surname,
+    cnic: member.CNIC,
+    FaceID: member.FaceID,
+    BloodGroup: member.BloodGroup,
+    DOB: member.DOB,
+    IslamicDOB: member.IslamicDOB,
+  };
+  
+  // Get family member cards
+  const familyCards = [];
+  if (member.familyMembers && member.familyMembers.length > 0) {
+    for (const familyJCIC of member.familyMembers) {
+      try {
+        const familyMember = await Member.findOne({ 
+          $or: [
+            { JCIC: Long.fromString(familyJCIC) },
+            { JCIC: familyJCIC },
+            { JCIC: parseInt(familyJCIC) }
+          ]
+        });
+        if (familyMember) {
+          familyCards.push({
+            jcic: familyMember.JCIC,
+            name: familyMember.name,
+            email: familyMember.email,
+            number: familyMember.number,
+            fatherHusband: familyMember['Father/Husband'],
+            surname: familyMember.Surname,
+            cnic: familyMember.CNIC,
+            FaceID: familyMember.FaceID,
+            BloodGroup: familyMember.BloodGroup,
+            DOB: familyMember.DOB,
+            IslamicDOB: familyMember.IslamicDOB,
+          });
+        }
+      } catch (e) {
+        console.log('Error fetching family member:', familyJCIC, e);
+      }
+    }
+  }
+  
+  res.json({
+    userCard,
+    familyCards,
+    lastUpdated: new Date().toISOString()
+  });
 });
 
 app.get('/', (req, res) => {

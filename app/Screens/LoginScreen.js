@@ -8,6 +8,7 @@ import Login from '../Components/Login';
 import ResetPasswordRequest from '../Components/ResetPasswordRequest';
 import ResetPasswordOtp from '../Components/ResetPasswordOtp';
 import { setUserId } from '../Redux/actions/authAction';
+import { setUserLoggedIn } from '../Functions/Functions';
 
 const LoginScreen = ({ navigation }) => {
   const [step, setStep] = useState('login');
@@ -52,6 +53,10 @@ const LoginScreen = ({ navigation }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error('Invalid JCIC or password');
+      
+      // Set user as logged in for persistent login
+      await setUserLoggedIn(jcic);
+      
       // Save JCIC to AsyncStorage
       await AsyncStorage.setItem('JCIC', jcic);
       // Set JCIC in Redux

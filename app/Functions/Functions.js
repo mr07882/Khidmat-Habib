@@ -267,6 +267,123 @@ export const getMemberDetails = async userId => {
   }
 };
 
+// Fetch all membership cards (user + family) for offline sync
+export const getMembershipCards = async userId => {
+  try {
+    const res = await fetch(`${API_URL}/membership-cards/${userId}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data;
+  } catch (e) {
+    console.log('Error fetching membership cards:', e);
+    return null;
+  }
+};
+
+// Sync membership cards to local storage
+export const syncMembershipCards = async (userId) => {
+  try {
+    const cardsData = await getMembershipCards(userId);
+    if (cardsData) {
+      // Store user card
+      if (cardsData.userCard) {
+        await AsyncStorage.setItem(`membership_card_${userId}`, JSON.stringify(cardsData.userCard));
+      }
+      
+      // Store family cards
+      if (cardsData.familyCards && cardsData.familyCards.length > 0) {
+        for (const familyCard of cardsData.familyCards) {
+          const familyJCIC = String(familyCard.jcic);
+          await AsyncStorage.setItem(`membership_card_${familyJCIC}`, JSON.stringify(familyCard));
+        }
+        
+        // Update family JCICs list
+        const familyJCICs = cardsData.familyCards.map(card => String(card.jcic));
+        await AsyncStorage.setItem('family_jcics', JSON.stringify(familyJCICs));
+      }
+      
+      // Store sync timestamp
+      await AsyncStorage.setItem(`membership_sync_${userId}`, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        userCard: cardsData.userCard ? true : false,
+        familyCount: cardsData.familyCards ? cardsData.familyCards.length : 0
+      }));
+      
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    console.log('Error syncing membership cards:', e);
+    return false;
+  }
+};
+
+// Get family members from database
+export const getFamilyMembers = async userId => {
+  try {
+    const res = await fetch(`${API_URL}/family/${userId}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.familyMembers || [];
+  } catch (e) {
+    console.log('Error fetching family members:', e);
+    return [];
+  }
+};
+
+// Check if user is logged in
+export const checkUserLogin = async () => {
+  try {
+    const jcic = await AsyncStorage.getItem('JCIC');
+    const isLoggedIn = await AsyncStorage.getItem('isLoggedIn');
+    
+    if (jcic && isLoggedIn === 'true') {
+      return { isLoggedIn: true, jcic };
+    }
+    return { isLoggedIn: false, jcic: null };
+  } catch (e) {
+    console.log('Error checking user login:', e);
+    return { isLoggedIn: false, jcic: null };
+  }
+};
+
+// Set user as logged in
+export const setUserLoggedIn = async (jcic) => {
+  try {
+    await AsyncStorage.setItem('JCIC', jcic);
+    await AsyncStorage.setItem('isLoggedIn', 'true');
+    return true;
+  } catch (e) {
+    console.log('Error setting user logged in:', e);
+    return false;
+  }
+};
+
+// Logout user
+export const logoutUser = async () => {
+  try {
+    await AsyncStorage.removeItem('JCIC');
+    await AsyncStorage.removeItem('isLoggedIn');
+    await AsyncStorage.removeItem('userToken');
+    
+    // Clear membership card cache
+    const jcic = await AsyncStorage.getItem('JCIC');
+    if (jcic) {
+      await AsyncStorage.removeItem(`membership_card_${jcic}`);
+      await AsyncStorage.removeItem(`membership_sync_${jcic}`);
+    }
+    
+    // Clear family members cache
+    await AsyncStorage.removeItem('family_jcics');
+    
+    return true;
+  } catch (e) {
+    console.log('Error logging out user:', e);
+    return false;
+  }
+};
+
 export {
   checkIsWholeNumber,
   sendError,

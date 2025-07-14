@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../Config/AppConfigData';
-import InputField from '../Components/FormElements/InputField';
-import RadioGroup from '../Components/FormElements/RadioGroup';
-import PhotoUpload from '../Components/FormElements/PhotoUpload';
-import SubmitButton from '../Components/FormElements/SubmitButton';
-import AttachmentField from '../Components/FormElements/AttachmentField';
+import {
+  InputField,
+  RadioGroup,
+  PhotoUpload,
+  SubmitButton,
+  AttachmentField,
+  Checkbox,
+} from '../Components/FormElements';
 
 const reasonOptions = [
   { label: 'My Card is lost', value: 'lost' },
@@ -71,10 +74,7 @@ const DuplicateCardForm = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [transactionSlip, setTransactionSlip] = useState(null);
 
-  // Helper for single-select reason
-  const selectReason = (val) => {
-    setReason(val);
-  };
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
@@ -147,26 +147,22 @@ const DuplicateCardForm = () => {
 
       {/* Section 2: Reason For New Card */}
       <Text style={styles.section}>Section 2: Reason For New Card</Text>
-      {reasonOptions.map(opt => (
-        <TouchableOpacity
-          key={opt.value}
-          style={[
-            styles.checkboxRow,
-            reason === opt.value && { backgroundColor: colors.secondryColor + '22' },
-          ]}
-          onPress={() => selectReason(opt.value)}
-        >
-          <View style={[
-            styles.checkbox,
-            reason === opt.value && { backgroundColor: colors.secondryColor, borderColor: colors.secondryColor },
-          ]} />
-          <Text style={[
-            styles.checkboxLabel,
-            { color: colors.secondryColor },
-            reason === opt.value && { fontWeight: 'bold' },
-          ]}>{opt.label}</Text>
-        </TouchableOpacity>
-      ))}
+      <Checkbox
+        options={reasonOptions}
+        value={reason}
+        onChange={setReason}
+        multiple={false}
+        selectedColor={colors.secondryColor}
+        unselectedColor={colors.secondryColor}
+        selectedBackgroundColor={colors.secondryColor + '22'}
+        checkboxSize={20}
+        labelFontSize={15}
+        labelFontWeight="normal"
+        selectedLabelFontWeight="bold"
+        spacing={8}
+        padding={8}
+        borderRadius={6}
+      />
       {/* Conditional fields for reasons */}
       {reason === 'damaged' && (
         <View style={{ marginBottom: 12 }}>
@@ -321,26 +317,6 @@ const styles = StyleSheet.create({
   },
   radioInline: {
     marginLeft: 10,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: colors.secondryColor,
-    borderRadius: 4,
-    marginRight: 10,
-    backgroundColor: '#fff',
-  },
-  checkboxLabel: {
-    fontSize: 15,
   },
   submitButton: {
     backgroundColor: colors.secondryColor,

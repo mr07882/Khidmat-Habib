@@ -14,7 +14,7 @@ const formatJCIC = jcic => jcic ? String(jcic).replace(/(\d{4})(?=\d)/g, '$1 ') 
 const CARD_WIDTH = 320; // You can adjust this for your app's layout
 const CARD_HEIGHT = Math.round(CARD_WIDTH * 54 / 85.6);
 
-const MembershipCard = ({ userId }) => {
+const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRemoveCrossPress }) => {
   const [member, setMember] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [flipped, setFlipped] = useState(false);
@@ -34,8 +34,13 @@ const MembershipCard = ({ userId }) => {
       const data = await getMemberDetails(uid);
       setMember(data);
       setImageError(false);
-      if (storageKey) {
+      if (storageKey && data) {
         await AsyncStorage.setItem(storageKey, JSON.stringify(data));
+        // Also store sync timestamp
+        await AsyncStorage.setItem(`membership_sync_${uid}`, JSON.stringify({
+          timestamp: new Date().toISOString(),
+          hasData: true
+        }));
       }
     } catch (e) {
       // fallback to local storage if fetch fails
@@ -62,8 +67,57 @@ const MembershipCard = ({ userId }) => {
     }
   };
 
+  // Check if we need to sync (if data is old or doesn't exist)
+  const shouldSync = async () => {
+    if (!storageKey) return false;
+    
+    try {
+      const syncInfo = await AsyncStorage.getItem(`membership_sync_${userId}`);
+      if (!syncInfo) return true;
+      
+      const sync = JSON.parse(syncInfo);
+      const lastSync = new Date(sync.timestamp);
+      const now = new Date();
+      const hoursSinceSync = (now - lastSync) / (1000 * 60 * 60);
+      
+      // Sync if data is older than 24 hours
+      return hoursSinceSync > 24;
+    } catch (e) {
+      return true;
+    }
+  };
+
   useEffect(() => {
     if (!userId) return;
+    
+    // Always try to load from cache first, regardless of network state
+    const loadData = async () => {
+      try {
+        
+        // First, always try to load from cache
+        await loadFromCache();
+        
+        // Then check network and sync if online
+        const networkState = await NetInfo.fetch();
+        
+        if (networkState.isConnected) {
+          setIsOffline(false);
+          const needsSync = await shouldSync();
+          if (needsSync) {
+            fetchAndCacheMember(userId);
+          }
+        } else {
+          setIsOffline(true);
+        }
+      } catch (error) {
+        // If anything fails, just try to load from cache
+        await loadFromCache();
+      }
+    };
+    
+    loadData();
+    
+    // Set up network listener for future changes
     const unsubscribe = NetInfo.addEventListener(state => {
       if (state.isConnected) {
         setIsOffline(false);
@@ -73,16 +127,7 @@ const MembershipCard = ({ userId }) => {
         loadFromCache();
       }
     });
-    // Initial check
-    NetInfo.fetch().then(state => {
-      if (state.isConnected) {
-        setIsOffline(false);
-        fetchAndCacheMember(userId);
-      } else {
-        setIsOffline(true);
-        loadFromCache();
-      }
-    });
+    
     return () => unsubscribe && unsubscribe();
   }, [userId]);
 
@@ -113,7 +158,18 @@ const MembershipCard = ({ userId }) => {
   };
 
   if (!userId) return <Text style={{color:'red'}}>No userId provided</Text>;
-  if (!member) return null;
+  if (!member) {
+    return (
+      <View style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{color: '#666', textAlign: 'center'}}>
+          {isOffline ? 'No cached data available offline' : 'Loading membership card...'}
+        </Text>
+        <Text style={{color: '#999', textAlign: 'center', fontSize: 12, marginTop: 10}}>
+          User ID: {userId}
+        </Text>
+      </View>
+    );
+  }
 
   // Card front
   const CardFront = (
@@ -187,14 +243,34 @@ const MembershipCard = ({ userId }) => {
     </View>
   );
 
+  // Overlay for removal mode (cross at top right)
+  const RemovalOverlay = (
+    <TouchableOpacity
+      style={styles.crossButtonTopRight}
+      onPress={e => {
+        e.stopPropagation();
+        onRemoveCrossPress();
+      }}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.crossTextSmall}>✖</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      if (imagePressedRef.current) {
-        return;
-      }
-      setFlipped(f => !f);
-    }}>
-      <View>
+    <TouchableWithoutFeedback
+      onPress={() => {
+        if (imagePressedRef.current) {
+          return;
+        }
+        setFlipped(f => !f);
+      }}
+      onLongPress={isFamilyMember ? onLongPress : undefined}
+      delayLongPress={400}
+    >
+      <View style={{ opacity: removalMode && isFamilyMember ? 0.5 : 1 }}>
+        {/* Cross button at top right if in removal mode */}
+        {isFamilyMember && removalMode ? RemovalOverlay : null}
         <Animated.View style={[styles.card, {backfaceVisibility: 'hidden', transform: [{rotateY: frontInterpolate}]}]}>
           {CardFront}
         </Animated.View>
@@ -362,6 +438,52 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
+  },
+  removalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  crossButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+  },
+  crossText: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    lineHeight: 38,
+  },
+  crossButtonTopRight: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+    elevation: 5,
+  },
+  crossTextSmall: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 
