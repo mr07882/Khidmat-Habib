@@ -4,6 +4,11 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ResetPasswordRequest = ({ onSubmit, error, onClose }) => {
   const [jcic, setJcic] = useState('');
+  
+  const handleSubmit = () => {
+    onSubmit(jcic);
+  };
+  
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -21,7 +26,7 @@ const ResetPasswordRequest = ({ onSubmit, error, onClose }) => {
         autoCapitalize="none"
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity style={styles.button} onPress={() => onSubmit(jcic)}>
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
         <Text style={styles.buttonText}>Send OTP</Text>
       </TouchableOpacity>
     </KeyboardAvoidingView>

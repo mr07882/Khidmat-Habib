@@ -240,6 +240,11 @@ const StackNavigator = () => {
             <Stack.Screen name="GraveRepairForm" component={GraveRepairForm} />
             <Stack.Screen name="NikahForm" component={NikahForm} />
             <Stack.Screen name="FSC_Form" component={FSC_Form} />
+            <Stack.Screen
+              name="ResetPassword"
+              component={Screens.ResetPasswordScreen}
+              options={{headerShown: false}}
+            />
 
             
           </Stack.Navigator>

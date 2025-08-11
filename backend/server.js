@@ -88,10 +88,61 @@ function sendOtpEmail(email, otp) {
   });
 }
 
+// NEW: Endpoint for sending OTP emails from Firebase app
+app.post('/send-otp-email', async (req, res) => {
+  try {
+    const { to, subject, otp, text, html } = req.body;
+    
+    if (!to || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'your.email@gmail.com',
+      to: to,
+      subject: subject || 'Your OTP Code - KPSIAJ',
+      text: text || `Your OTP code is: ${otp}. This code will expire in 5 minutes.`,
+      html: html || `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #715054;">KPSIAJ Authentication</h2>
+          <p>Your OTP code is:</p>
+          <h1 style="color: #715054; font-size: 32px; letter-spacing: 8px; text-align: center; padding: 20px; background: #f5f5f5; border-radius: 8px;">${otp}</h1>
+          <p>This code will expire in 5 minutes.</p>
+          <p>If you didn't request this code, please ignore this email.</p>
+        </div>
+      `
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    
+    res.json({ 
+      success: true, 
+      messageId: result.messageId,
+      message: 'OTP email sent successfully' 
+    });
+    
+  } catch (error) {
+    console.error('❌ Error sending OTP email:', error);
+    res.status(500).json({ 
+      error: 'Failed to send OTP email',
+      details: error.message 
+    });
+  }
+});
+
+// NEW: Test endpoint to verify environment variables
+app.get('/test-env', (req, res) => {
+  res.json({
+    emailUser: process.env.EMAIL_USER || 'NOT_SET',
+    emailPass: process.env.EMAIL_PASS ? 'SET (hidden for security)' : 'NOT_SET',
+    nodeEnv: process.env.NODE_ENV || 'NOT_SET',
+    port: process.env.PORT || 'NOT_SET',
+    message: 'Check if EMAIL_USER and EMAIL_PASS are properly loaded'
+  });
+});
 
 //DUMMY SMS
 function sendOtpSms(number, otp) {
-  //console.log(`Send OTP ${otp} to phone ${number}`);
   return Promise.resolve();
 }
 
