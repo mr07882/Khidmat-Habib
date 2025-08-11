@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvo
 import ReactNativeBiometrics from 'react-native-biometrics';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const Login = ({ onLogin, error }) => {
+const Login = ({ onLogin, error, loading }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -67,8 +67,8 @@ const Login = ({ onLogin, error }) => {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Login...' : 'Login'}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => onLogin?.('resetPassword')} style={styles.linkContainer}>

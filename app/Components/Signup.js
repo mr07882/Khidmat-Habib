@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const Signup = ({ onSignup, onGoToLogin, error }) => {
+const Signup = ({ onSignup, onGoToLogin, error, loading }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -68,8 +68,8 @@ const Signup = ({ onSignup, onGoToLogin, error }) => {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleSignup}>
-        <Text style={styles.buttonText}>Sign Up</Text>
+      <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Sign Up...' : 'Sign Up'}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onGoToLogin} style={styles.linkContainer}>
