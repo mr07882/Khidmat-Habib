@@ -17,6 +17,11 @@ import switches from '../../FCM/switch.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import { API_URL } from '../config';
+import { getMemberByJCIC } from '../Api/Firebase/MemberInformation';
+import { generateOTP, storeOTP, verifyOTP } from '../Api/Firebase/auth';
+import { db } from '../Config/firebase';
+import { ref, update, get } from 'firebase/database';
+import { sendOTPEmail } from '../Api/Firebase/emailService';
 import {logoutUser} from '../Functions/Functions';
 import {setUserId} from '../Redux/actions/authAction';
 import { useDispatch } from 'react-redux';
@@ -67,7 +72,7 @@ const Settings = () => {
     } finally {
       setIsLoadingFamilyMembers(false);
     }
-  };
+  } // End of handleVerifyFamilyOtp
 
   const removeFamilyMember = async (familyJCIC) => {
     try {
@@ -224,7 +229,6 @@ const Settings = () => {
       setFamilyApiError('Please enter JCIC number');
       return;
     }
-
     // Check if already added (local check)
     try {
       const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
@@ -233,36 +237,38 @@ const Settings = () => {
         setFamilyApiError('Family member already added');
         return;
       }
-    } catch (e) {
-      // ignore
-    }
-
+    } catch (e) {}
     setIsFamilyLoading(true);
     try {
-      // First verify the family member exists
-      const verifyRes = await fetch(API_URL + '/family/add/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userJCIC, familyJCIC: familyJCICInput }),
-      });
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok || !verifyData.success) {
-        setFamilyApiError(verifyData.error || 'Member Not In Relationship');
+      // Fetch family member details from Firebase
+      const response = await getMemberByJCIC(familyJCICInput);
+      if (!response.success || !response.data) {
+        setFamilyApiError('Family member not found');
         setIsFamilyLoading(false);
         return;
       }
-
+      const email = response.data.Email;
+      if (!email) {
+        setFamilyApiError('Family member does not have an email');
+        setIsFamilyLoading(false);
+        return;
+      }
+      // Generate and store OTP in Firebase
+      const otp = generateOTP();
+      await storeOTP(familyJCICInput, otp);
+      await sendOTPEmail(email, otp);
       setPendingFamilyJCIC(familyJCICInput);
       setFamilyModalVisible(false);
       setFamilyOtpModal(true);
-      setIsFamilyLoading(false);
     } catch (e) {
-      setFamilyApiError('Network error');
+      setFamilyApiError('Error sending OTP');
+    } finally {
       setIsFamilyLoading(false);
     }
   };
 
   const handleVerifyFamilyOtp = async () => {
+    setFamilyOtpError('');
     setFamilyOtpError('');
     if (!familyOtp) {
       setFamilyOtpError('Please enter OTP');
@@ -270,52 +276,41 @@ const Settings = () => {
     }
     setIsFamilyLoading(true);
     try {
-      // Verify OTP
-      const verifyRes = await fetch(API_URL + '/family/add/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ familyJCIC: pendingFamilyJCIC, otp: familyOtp }),
-      });
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok || !verifyData.success) {
-        setFamilyOtpError(verifyData.error || 'Incorrect otp');
+      // Verify OTP from Firebase
+      const result = await verifyOTP(pendingFamilyJCIC, familyOtp);
+      if (!result.success) {
+        setFamilyOtpError(result.error || 'Invalid OTP');
         setIsFamilyLoading(false);
         return;
       }
-      
-      // Add to database
-      const addRes = await fetch(`${API_URL}/family/${userJCIC}/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ familyJCIC: pendingFamilyJCIC }),
-      });
-      const addData = await addRes.json();
-      if (!addRes.ok) {
-        setFamilyOtpError(addData.error || 'Failed to add family member');
-        setIsFamilyLoading(false);
-        return;
+      // Add family JCIC to logged-in user's FamilyMembers array in Firebase
+      const memberRef = ref(db, `Members/${userJCIC}`);
+      const snapshot = await get(memberRef);
+      let memberData = snapshot.exists() ? snapshot.val() : {};
+      let familyList = Array.isArray(memberData.FamilyMembers) ? memberData.FamilyMembers : [];
+      if (!familyList.includes(pendingFamilyJCIC)) {
+        familyList.push(pendingFamilyJCIC);
+        await update(memberRef, { FamilyMembers: familyList });
       }
-      
       // Update local storage for offline support
       let stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
       let arr = stored ? JSON.parse(stored) : [];
       if (!arr.includes(pendingFamilyJCIC)) arr.push(pendingFamilyJCIC);
       await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
-      
       setFamilyOtpModal(false);
       setFamilyOtp('');
       setFamilyJCICInput('');
       setPendingFamilyJCIC('');
       Alert.alert('Family member added!');
       setIsFamilyLoading(false);
-      
       // Reload family members
       await loadFamilyMembers();
     } catch (e) {
-      setFamilyOtpError('Network error');
+      setFamilyOtpError('Error verifying OTP or updating family list');
       setIsFamilyLoading(false);
     }
   };
+     
 
   if (loading) {
     return <Loader bgColor="#F2F2F2" />;
@@ -388,6 +383,23 @@ const Settings = () => {
           </View>
         </View>
       </Modal>
+      {/* Family Members Section: Display Membership Cards */}
+      <View style={styles.familyMembersSection}>
+        <Text style={styles.sectionTitle}>Family Members</Text>
+        {isLoadingFamilyMembers ? (
+          <Text style={styles.loadingText}>Loading family members...</Text>
+        ) : familyMembers.length === 0 ? (
+          <Text style={styles.noFamilyText}>No family members added yet.</Text>
+        ) : (
+          familyMembers.map(jcic => (
+            <View key={jcic} style={{marginBottom: 16}}>
+              {/* MembershipCard for each family member */}
+              <MembershipCard userId={jcic} isFamilyMember={true} removalMode={false} />
+            </View>
+          ))
+        )}
+      </View>
+
       <View style={settingStyles.subView}>
         <Text style={settingStyles.heading}>Notification Subscription</Text>
         {!permission && (
@@ -397,7 +409,6 @@ const Settings = () => {
         )}
         {switches.map((ele, ind) => {
           let isSubscribed = topicData[ele.dbName];
-
           if (isNotNullOrEmpty(isSubscribed)) {
             let styles = {
               ...toggleStyle,

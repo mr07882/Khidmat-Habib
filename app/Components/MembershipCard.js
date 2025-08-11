@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity, Animated, T
 import { colors } from '../Config/AppConfigData';
 const logo = require('../../assets/logo.webp');
 const secSign = require('../../assets/SecSign.png');
-import { getMemberDetails } from '../Functions/Functions';
+import { getMemberByJCIC } from '../Api/Firebase/MemberInformation';
 import QRCode from 'react-native-qrcode-svg';
 // --- Added for offline support ---
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,19 +28,35 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
   // Key for AsyncStorage
   const storageKey = userId ? `membership_card_${userId}` : null;
 
-  // Fetch and cache member details
+  // Fetch member details from Firebase Membership Information API
   const fetchAndCacheMember = async (uid) => {
     try {
-      const data = await getMemberDetails(uid);
-      setMember(data);
-      setImageError(false);
-      if (storageKey && data) {
-        await AsyncStorage.setItem(storageKey, JSON.stringify(data));
-        // Also store sync timestamp
-        await AsyncStorage.setItem(`membership_sync_${uid}`, JSON.stringify({
-          timestamp: new Date().toISOString(),
-          hasData: true
-        }));
+      const response = await getMemberByJCIC(uid);
+      if (response.success && response.data) {
+        const data = {
+          jcic: uid,
+          name: response.data.Name || '',
+          fatherHusband: response.data.Father_Husband || '',
+          surname: response.data.Surname || '',
+          cnic: response.data.CNIC || '',
+          BloodGroup: response.data.BloodGroup || '',
+          DOB: response.data.DOB || '',
+          IslamicDOB: response.data.IslamicDOB || '',
+          FaceID: response.data.Picture || '',
+          email: response.data.Email || '',
+          number: response.data.Country || '', // Update if phone is needed
+        };
+        setMember(data);
+        setImageError(false);
+        if (storageKey && data) {
+          await AsyncStorage.setItem(storageKey, JSON.stringify(data));
+          await AsyncStorage.setItem(`membership_sync_${uid}`, JSON.stringify({
+            timestamp: new Date().toISOString(),
+            hasData: true
+          }));
+        }
+      } else {
+        setMember(null);
       }
     } catch (e) {
       // fallback to local storage if fetch fails

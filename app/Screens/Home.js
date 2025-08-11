@@ -23,7 +23,8 @@ import {updateDonationCart} from '../Redux/actions/donationAction';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
-import { syncMembershipCards, getFamilyMembers, getMemberDetails } from '../Functions/Functions';
+import { syncMembershipCards } from '../Functions/Functions';
+import { getMemberByJCIC } from '../Api/Firebase/MemberInformation';
 import { API_URL } from '../config';
 
 const FAMILY_STORAGE_KEY = 'family_jcics';
@@ -109,31 +110,26 @@ function Home(props) {
     let arr = [];
     if (userJCIC) {
       arr = [userJCIC];
-      setJcicList(arr);
     }
     try {
+      // Fetch family members from Firebase
+      const response = await getMemberByJCIC(userJCIC);
+      if (response.success && response.data && Array.isArray(response.data.FamilyMembers)) {
+        response.data.FamilyMembers.forEach(j => {
+          if (j && !arr.includes(j)) arr.push(j);
+        });
+        // Optionally update AsyncStorage for offline support
+        await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(response.data.FamilyMembers));
+      }
+    } catch (e) {
+      // fallback to local storage if fetch fails
       const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
       if (stored) {
         const famArr = JSON.parse(stored);
-        famArr.forEach(j => { 
-          if (j && !arr.includes(j)) arr.push(j); 
+        famArr.forEach(j => {
+          if (j && !arr.includes(j)) arr.push(j);
         });
       }
-      if (isOnline && userJCIC) {
-        try {
-          const familyMembers = await getFamilyMembers(userJCIC);
-          const freshJcics = familyMembers.map(m => String(m.jcic)).filter(j => j);
-          await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(freshJcics));
-          for (const jcic of freshJcics) {
-            await cacheFamilyMemberData(jcic);
-          }
-          arr = [userJCIC, ...freshJcics];
-        } catch (dbError) {
-          // ignore
-        }
-      }
-    } catch (e) {
-      // ignore
     }
     if (userJCIC && !arr.includes(userJCIC)) {
       arr.push(userJCIC);

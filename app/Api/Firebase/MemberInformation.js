@@ -10,6 +10,8 @@ export const getMemberByJCIC = async (jcic) => {
     
     if (snapshot.exists()) {
       const memberData = snapshot.val();
+      // Ensure FamilyMembers is always an array
+      if (!memberData.FamilyMembers) memberData.FamilyMembers = [];
       return {
         success: true,
         data: memberData
