@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { colors } from '../Config/AppConfigData';
 import * as Icn from '../Helpers/icons';
-import { API_URL } from '../config';
+
 
 const BusinessPlace = () => {
   const [businesses, setBusinesses] = useState([]);

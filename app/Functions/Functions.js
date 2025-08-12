@@ -7,7 +7,7 @@ import RNFetchBlob from 'rn-fetch-blob';
 import {Text} from '../Components/core';
 import {permissions} from '.';
 import database from '@react-native-firebase/database';
-import { API_URL } from '../config';
+
 
 const onShare = async (url, type) => {
   let data = `data:${type};base64,`;
