@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity, Animated, T
 import { colors } from '../Config/AppConfigData';
 const logo = require('../../assets/logo.webp');
 const secSign = require('../../assets/SecSign.png');
-import { getMemberByJCIC } from '../Api/Firebase/MemberInformation';
+import { getMemberProfile } from '../Api/Firebase/ProfileAPI';
 import QRCode from 'react-native-qrcode-svg';
 // --- Added for offline support ---
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,25 +31,12 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
   // Fetch member details from Firebase Membership Information API
   const fetchAndCacheMember = async (uid) => {
     try {
-      const response = await getMemberByJCIC(uid);
+      const response = await getMemberProfile(uid);
       if (response.success && response.data) {
-        const data = {
-          jcic: uid,
-          name: response.data.Name || '',
-          fatherHusband: response.data.Father_Husband || '',
-          surname: response.data.Surname || '',
-          cnic: response.data.CNIC || '',
-          BloodGroup: response.data.BloodGroup || '',
-          DOB: response.data.DOB || '',
-          IslamicDOB: response.data.IslamicDOB || '',
-          FaceID: response.data.Picture || '',
-          email: response.data.Email || '',
-          number: response.data.Country || '', // Update if phone is needed
-        };
-        setMember(data);
+        setMember(response.data);
         setImageError(false);
-        if (storageKey && data) {
-          await AsyncStorage.setItem(storageKey, JSON.stringify(data));
+        if (storageKey && response.data) {
+          await AsyncStorage.setItem(storageKey, JSON.stringify(response.data));
           await AsyncStorage.setItem(`membership_sync_${uid}`, JSON.stringify({
             timestamp: new Date().toISOString(),
             hasData: true
@@ -204,8 +191,8 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
         <View style={{alignItems: 'center', justifyContent: 'flex-start', width: 70}}>
           <TouchableOpacity>
             <Image
-              source={(!imageError && isValidImageUrl(member.FaceID))
-                ? { uri: member.FaceID }
+              source={(!imageError && isValidImageUrl(member.picture))
+                ? { uri: member.picture }
                 : require('../../assets/femaleDummy.webp')}
               style={styles.faceImg}
               onError={() => {
@@ -239,9 +226,9 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
         <Text style={[styles.jcic, {textAlign: 'center', marginBottom: 8, alignSelf: 'center', width: '100%'}]}>{formatJCIC(member.jcic)}</Text>
       </View>
       <View style={{marginLeft: 10}}>
-        <Text style={styles.infoText}><Text style={styles.infoLabel}>Blood Group:</Text> {member.BloodGroup || '-'}</Text>
-        <Text style={styles.infoText}><Text style={styles.infoLabel}>DOB:</Text> {formatDate(member.DOB)}</Text>
-        <Text style={styles.infoText}><Text style={styles.infoLabel}>Islamic DOB:</Text> {member.IslamicDOB || '-'}</Text>
+  <Text style={styles.infoText}><Text style={styles.infoLabel}>Blood Group:</Text> {member.bloodGroup || '-'}</Text>
+  <Text style={styles.infoText}><Text style={styles.infoLabel}>DOB:</Text> {formatDate(member.dob)}</Text>
+  <Text style={styles.infoText}><Text style={styles.infoLabel}>Islamic DOB:</Text> {member.islamicDOB || '-'}</Text>
       </View>
       <View style={{flex: 1}} />
       <View style={styles.qrRow}>

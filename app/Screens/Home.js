@@ -25,7 +25,7 @@ import { useIsFocused } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import { syncMembershipCards } from '../Functions/Functions';
 import { getMemberByJCIC } from '../Api/Firebase/MemberInformation';
-import { API_URL } from '../config';
+import { removeFamilyMember } from '../Api/Firebase/ProfileAPI';
 
 const FAMILY_STORAGE_KEY = 'family_jcics';
 
@@ -137,42 +137,6 @@ function Home(props) {
     setJcicList(arr);
   };
 
-  // Cache family member data for each family JCIC
-  const cacheFamilyMemberData = async (familyJCIC) => {
-    try {
-      // Get family member data from database
-      const familyData = await getMemberDetails(familyJCIC);
-      if (familyData) {
-        await AsyncStorage.setItem(`membership_card_${familyJCIC}`, JSON.stringify(familyData));
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      // Silently ignore errors, do not log
-      return false;
-    }
-  };
-
-  // Cache all family member data
-  const cacheAllFamilyMembers = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('family_jcics');
-      if (stored) {
-        const familyJCICs = JSON.parse(stored);
-        
-        for (const jcic of familyJCICs) {
-          await cacheFamilyMemberData(jcic);
-        }
-        
-        // Reload JCICs to pick up newly cached data
-        await loadJcics();
-      }
-    } catch (error) {
-      console.log('Error caching all family members', error);
-    }
-  };
-
   // Remove family member handler (with confirmation)
   const confirmAndRemoveFamilyMember = (familyJCIC) => {
     Alert.alert(
@@ -185,23 +149,37 @@ function Home(props) {
     );
   };
 
-  // Remove family member handler
+  // Remove family member handler using Firebase API
   const handleRemoveFamilyMember = async (familyJCIC) => {
-    // Remove from AsyncStorage
     try {
-      const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
-      let arr = stored ? JSON.parse(stored) : [];
-      arr = arr.filter(j => j !== familyJCIC);
-      await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
-      await AsyncStorage.removeItem(`membership_card_${familyJCIC}`);
-    } catch (e) {}
-    // Remove from backend
-    try {
-      await fetch(`${API_URL}/family/${userId}/remove/${familyJCIC}`, { method: 'DELETE' });
-    } catch (e) {}
-    // Refresh list
-    loadJcics();
-    setRemovalMode(prev => ({ ...prev, [familyJCIC]: false }));
+      // Remove from Firebase using the ProfileAPI
+      const result = await removeFamilyMember(userId, familyJCIC);
+      
+      if (result.success) {
+        // Remove from AsyncStorage only if Firebase deletion succeeded
+        try {
+          const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
+          let arr = stored ? JSON.parse(stored) : [];
+          arr = arr.filter(j => j !== familyJCIC);
+          await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
+          await AsyncStorage.removeItem(`membership_card_${familyJCIC}`);
+        } catch (e) {
+          console.log('Error updating local storage:', e);
+        }
+        
+        // Refresh list to reflect changes
+        loadJcics();
+        setRemovalMode(prev => ({ ...prev, [familyJCIC]: false }));
+        Alert.alert('Success', 'Family member removed successfully');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to remove family member');
+        setRemovalMode(prev => ({ ...prev, [familyJCIC]: false }));
+      }
+    } catch (e) {
+      console.log('Error removing family member:', e);
+      Alert.alert('Error', 'Network error while removing family member');
+      setRemovalMode(prev => ({ ...prev, [familyJCIC]: false }));
+    }
   };
 
   // Monitor network connectivity

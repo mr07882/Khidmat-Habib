@@ -31,8 +31,9 @@ const BusinessPlace = () => {
   const fetchBusinesses = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/businesses`);
-      const data = await res.json();
+      // Fetch businesses from Firebase
+      const { getAllBusinesses } = await import('../Api/Firebase/BusinessAPI');
+      const data = await getAllBusinesses();
       setBusinesses(data);
     } catch (e) {
       setBusinesses([]);
@@ -44,12 +45,10 @@ const BusinessPlace = () => {
     Keyboard.dismiss();
     setSearching(true);
     try {
-      let url = `${API_URL}/businesses/search?`;
-      if (search) url += `query=${encodeURIComponent(search)}&`;
-      if (workDesc) url += `work=${encodeURIComponent(workDesc)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setBusinesses(data);
+  // Search businesses from Firebase
+  const { searchBusinesses } = await import('../Api/Firebase/BusinessAPI');
+  const data = await searchBusinesses(search, workDesc);
+  setBusinesses(data);
     } catch (e) {
       setBusinesses([]);
     }

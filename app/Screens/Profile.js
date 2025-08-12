@@ -3,140 +3,144 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput,
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../Config/AppConfigData';
-import { API_URL } from '../config';
+import { 
+  getMemberProfile, 
+  addMemberBusiness, 
+  updateBusinessByIndex, 
+  deleteMemberBusiness
+} from '../Api/Firebase/ProfileAPI';
 
 const Profile = () => {
+  const route = useRoute();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [eduModal, setEduModal] = useState(false);
-  const [bizModal, setBizModal] = useState(false);
-  const [eduForm, setEduForm] = useState({ institution: '', year: '', description: '' });
-  const [bizForm, setBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-  const [editEduIndex, setEditEduIndex] = useState(null);
-  const [editBizIndex, setEditBizIndex] = useState(null);
-  const [editEduForm, setEditEduForm] = useState({ institution: '', year: '', description: '' });
-  const [editBizForm, setEditBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-  const [photoModal, setPhotoModal] = useState(false);
-  const navigation = useNavigation();
-  const route = useRoute();
   const [jcicState, setJcicState] = useState(null);
+
+  // Business modal/form
+  const [bizModal, setBizModal] = useState(false);
+  const [bizForm, setBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+  const [editBizIndex, setEditBizIndex] = useState(null);
+  const [editBizForm, setEditBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+
+  const [photoModal, setPhotoModal] = useState(false);
 
   useEffect(() => {
     const getJCIC = async () => {
-      let jcicParam = route.params?.JCIC;
-      let jcic = jcicParam;
-      if (!jcic) {
-        const storedJCIC = await AsyncStorage.getItem('JCIC');
-        if (storedJCIC) jcic = storedJCIC;
+      try {
+        const jcicParam = route.params?.JCIC || (await AsyncStorage.getItem('JCIC'));
+        if (jcicParam) {
+          setJcicState(jcicParam);
+          const memberData = await getMemberProfile(jcicParam);
+          if (memberData && memberData.success) {
+            setUser(memberData.data);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error fetching member data:', error);
+        setUser(null);
       }
-      setJcicState(jcic);
-      if (!jcic) return;
-      fetch(`${API_URL}/profile/${jcic}`)
-        .then(res => res.json())
-        .then(data => {
-          setUser(data);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      setLoading(false);
     };
     getJCIC();
   }, [route.params?.JCIC]);
 
-  const handleAddEducation = () => {
-    fetch(`${API_URL}/profile/${jcicState}/education`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(eduForm),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setUser(prev => ({ ...prev, education: data.education }));
-        setEduModal(false);
-        setEduForm({ institution: '', year: '', description: '' });
-      })
-      .catch(() => Alert.alert('Error', 'Failed to add education'));
+  // Business Functions
+  const handleAddBusiness = async () => {
+    // Validate required fields
+    if (!bizForm.name.trim()) {
+      Alert.alert('Error', 'Business name is required');
+      return;
+    }
+    if (!bizForm.description.trim()) {
+      Alert.alert('Error', 'Business description is required');
+      return;
+    }
+    if (!bizForm.services.trim()) {
+      Alert.alert('Error', 'Business services are required');
+      return;
+    }
+    if (!bizForm.contactPhone.trim()) {
+      Alert.alert('Error', 'Contact phone is required');
+      return;
+    }
+
+    const businessData = {
+      name: bizForm.name,
+      description: bizForm.description,
+      services: bizForm.services,
+      contact: { phone: bizForm.contactPhone, email: bizForm.contactEmail },
+      address: bizForm.address,
+    };
+
+    const result = await addMemberBusiness(jcicState, businessData);
+    if (result.success) {
+      setUser(prev => ({ ...prev, business: result.data }));
+      setBizModal(false);
+      setBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+      Alert.alert('Success', 'Business added successfully');
+    } else {
+      Alert.alert('Error', 'Failed to add business');
+    }
   };
 
-  const handleAddBusiness = () => {
-    fetch(`${API_URL}/profile/${jcicState}/business`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: bizForm.name,
-        description: bizForm.description,
-        services: bizForm.services,
-        contact: { phone: bizForm.contactPhone, email: bizForm.contactEmail },
-        address: bizForm.address,
-      }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setUser(prev => ({ ...prev, business: data.business }));
-        setBizModal(false);
-        setBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-      })
-      .catch(() => Alert.alert('Error', 'Failed to add business'));
-  };
-
-  // Edit Education
-  const handleEditEducation = (idx) => {
-    const edu = user.education[idx];
-    setEditEduForm({ ...edu });
-    setEditEduIndex(idx);
-  };
-  const handleSaveEditEducation = () => {
-    const updatedEducation = [...user.education];
-    updatedEducation[editEduIndex] = { ...editEduForm };
-    fetch(`${API_URL}/profile/${jcicState}/education`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ education: updatedEducation }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setUser(prev => ({ ...prev, education: data.education }));
-        setEditEduIndex(null);
-      })
-      .catch(() => Alert.alert('Error', 'Failed to update education'));
-  };
-
-  // Edit Business
   const handleEditBusiness = (idx) => {
     const biz = user.business[idx];
     setEditBizForm({
-      name: biz.name,
-      description: biz.description,
-      services: biz.services,
+      name: biz.name || '',
+      description: biz.description || '',
+      services: biz.services || '',
       contactPhone: biz.contact?.phone || '',
       contactEmail: biz.contact?.email || '',
-      address: biz.address,
+      address: biz.address || '',
     });
     setEditBizIndex(idx);
+    setBizModal(true);
   };
-  const handleSaveEditBusiness = () => {
-    const updatedBusiness = [...user.business];
-    updatedBusiness[editBizIndex] = {
+
+  const handleSaveEditBusiness = async () => {
+    // Validate required fields
+    if (!editBizForm.name.trim()) {
+      Alert.alert('Error', 'Business name is required');
+      return;
+    }
+    if (!editBizForm.description.trim()) {
+      Alert.alert('Error', 'Business description is required');
+      return;
+    }
+    if (!editBizForm.services.trim()) {
+      Alert.alert('Error', 'Business services are required');
+      return;
+    }
+    if (!editBizForm.contactPhone.trim()) {
+      Alert.alert('Error', 'Contact phone is required');
+      return;
+    }
+
+    const businessData = {
       name: editBizForm.name,
       description: editBizForm.description,
       services: editBizForm.services,
       contact: { phone: editBizForm.contactPhone, email: editBizForm.contactEmail },
       address: editBizForm.address,
     };
-    fetch(`${API_URL}/profile/${jcicState}/business`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ business: updatedBusiness }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setUser(prev => ({ ...prev, business: data.business }));
-        setEditBizIndex(null);
-      })
-      .catch(() => Alert.alert('Error', 'Failed to update business'));
+
+    const result = await updateBusinessByIndex(jcicState, editBizIndex, businessData);
+    if (result.success) {
+      setUser(prev => ({ ...prev, business: result.data }));
+      setEditBizIndex(null);
+      setBizModal(false);
+      setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+      Alert.alert('Success', 'Business updated successfully');
+    } else {
+      Alert.alert('Error', 'Failed to update business');
+    }
   };
 
-  // Delete Business
-  const handleDeleteBusiness = () => {
+  const handleDeleteBusiness = async () => {
     Alert.alert(
       'Delete Business',
       'Are you sure you want to delete this business? This action cannot be undone.',
@@ -145,26 +149,32 @@ const Profile = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            fetch(`${API_URL}/profile/${jcicState}/business/${editBizIndex}`, {
-              method: 'DELETE',
-            })
-              .then(res => res.json())
-              .then(data => {
-                setUser(prev => ({ ...prev, business: data.business }));
-                setEditBizIndex(null);
-                Alert.alert('Success', 'Business deleted successfully');
-              })
-              .catch(() => Alert.alert('Error', 'Failed to delete business'));
+          onPress: async () => {
+            const result = await deleteMemberBusiness(jcicState, editBizIndex);
+            if (result.success) {
+              setUser(prev => ({ ...prev, business: result.data }));
+              setEditBizIndex(null);
+              setBizModal(false);
+              setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+              Alert.alert('Success', 'Business deleted successfully');
+            } else {
+              Alert.alert('Error', 'Failed to delete business');
+            }
           },
         },
       ]
     );
   };
 
-  if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
-  if (!user) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No user data found.</Text></View>;
-  if (!jcicState) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No JCIC provided. Please login again.</Text></View>;
+  const resetForms = () => {
+    setBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+    setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+    setEditBizIndex(null);
+  };
+
+  if (loading) return <View style={styles.center}><Text>Loading...</Text></View>;
+  if (!user) return <View style={styles.center}><Text>No user data found.</Text></View>;
+  if (!jcicState) return <View style={styles.center}><Text>No JCIC provided. Please login again.</Text></View>;
 
   return (
     <ScrollView style={styles.container}>
@@ -173,10 +183,10 @@ const Profile = () => {
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 }}>
           <Text style={styles.sectionTitle}>Personal Details</Text>
           <View style={{ flex: 1 }} />
-          {user.FaceID ? (
+          {user.picture ? (
             <TouchableOpacity onPress={() => setPhotoModal(true)} style={{ alignSelf: 'flex-start' }}>
               <Image
-                source={user.FaceID.startsWith('http') ? { uri: user.FaceID } : require('../../assets/femaleDummy.webp')}
+                source={user.picture.startsWith('http') ? { uri: user.picture } : require('../../assets/femaleDummy.webp')}
                 style={styles.profilePhoto}
               />
             </TouchableOpacity>
@@ -188,31 +198,22 @@ const Profile = () => {
         <View style={styles.detailRow}><Text style={styles.label}>Email:</Text><Text style={styles.value}>{user.email}</Text></View>
       </View>
 
-      {/* Education Details */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Education Details</Text>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setEduModal(true)}><Text style={styles.addBtnText}>+ Add</Text></TouchableOpacity>
-        </View>
-        {(user.education || []).map((edu, idx) => (
-          <TouchableOpacity key={idx} style={styles.card} onPress={() => handleEditEducation(idx)}>
-            <Text style={styles.cardTitle}>{edu.institution} ({edu.year})</Text>
-            <Text style={styles.cardText}><Text style={styles.label}>Description:</Text> {edu.description}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       {/* Business Details */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Business Details</Text>
           {(user.business || []).length < 5 && (
-            <TouchableOpacity style={styles.addBtn} onPress={() => setBizModal(true)}><Text style={styles.addBtnText}>+ Add</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.addBtn} onPress={() => setBizModal(true)}>
+              <Text style={styles.addBtnText}>+ Add</Text>
+            </TouchableOpacity>
           )}
         </View>
         {(user.business || []).map((biz, idx) => (
           <TouchableOpacity key={idx} style={styles.card} onPress={() => handleEditBusiness(idx)}>
-            <Text style={styles.cardTitle}>{biz.name}</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{biz.name}</Text>
+              <Text style={styles.tapHint}>Tap to edit</Text>
+            </View>
             <Text style={styles.cardText}><Text style={styles.label}>Description:</Text> {biz.description}</Text>
             <Text style={styles.cardText}><Text style={styles.label}>Services:</Text> {biz.services}</Text>
             <Text style={styles.cardText}><Text style={styles.label}>Contact:</Text> {biz.contact?.phone}, {biz.contact?.email}</Text>
@@ -221,78 +222,77 @@ const Profile = () => {
         ))}
       </View>
 
-      {/* Education Modal */}
-      <Modal visible={eduModal} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Education</Text>
-            <TextInput placeholder="Institution" style={styles.input} value={eduForm.institution} onChangeText={t => setEduForm(f => ({ ...f, institution: t }))} />
-            <TextInput placeholder="Year" style={styles.input} value={eduForm.year} onChangeText={t => setEduForm(f => ({ ...f, year: t }))} />
-            <TextInput placeholder="Description" style={styles.input} value={eduForm.description} onChangeText={t => setEduForm(f => ({ ...f, description: t }))} />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => setEduModal(false)}><Text>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnSave} onPress={handleAddEducation}><Text style={{ color: '#fff' }}>Save</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Business Modal */}
       <Modal visible={bizModal} transparent animationType="slide">
         <View style={styles.modalBg}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Business</Text>
-            <TextInput placeholder="Business Name" style={styles.input} value={bizForm.name} onChangeText={t => setBizForm(f => ({ ...f, name: t }))} />
-            <TextInput placeholder="Description" style={styles.input} value={bizForm.description} onChangeText={t => setBizForm(f => ({ ...f, description: t }))} />
-            <TextInput placeholder="Services" style={styles.input} value={bizForm.services} onChangeText={t => setBizForm(f => ({ ...f, services: t }))} />
-            <TextInput placeholder="Contact Phone" style={styles.input} value={bizForm.contactPhone} onChangeText={t => setBizForm(f => ({ ...f, contactPhone: t }))} />
-            <TextInput placeholder="Contact Email" style={styles.input} value={bizForm.contactEmail} onChangeText={t => setBizForm(f => ({ ...f, contactEmail: t }))} />
-            <TextInput placeholder="Address" style={styles.input} value={bizForm.address} onChangeText={t => setBizForm(f => ({ ...f, address: t }))} />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => setBizModal(false)}><Text>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnSave} onPress={handleAddBusiness}><Text style={{ color: '#fff' }}>Save</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Edit Education Modal */}
-      <Modal visible={editEduIndex !== null} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Education</Text>
-            <TextInput placeholder="Institution" style={styles.input} value={editEduForm.institution} onChangeText={t => setEditEduForm(f => ({ ...f, institution: t }))} />
-            <TextInput placeholder="Year" style={styles.input} value={editEduForm.year} onChangeText={t => setEditEduForm(f => ({ ...f, year: t }))} />
-            <TextInput placeholder="Description" style={styles.input} value={editEduForm.description} onChangeText={t => setEditEduForm(f => ({ ...f, description: t }))} />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-              <TouchableOpacity style={styles.modalBtn} onPress={() => setEditEduIndex(null)}><Text>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnSave} onPress={handleSaveEditEducation}><Text style={{ color: '#fff' }}>Save</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Edit Business Modal */}
-      <Modal visible={editBizIndex !== null} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Business</Text>
-            <TextInput placeholder="Business Name" style={styles.input} value={editBizForm.name} onChangeText={t => setEditBizForm(f => ({ ...f, name: t }))} />
-            <TextInput placeholder="Description" style={styles.input} value={editBizForm.description} onChangeText={t => setEditBizForm(f => ({ ...f, description: t }))} />
-            <TextInput placeholder="Services" style={styles.input} value={editBizForm.services} onChangeText={t => setEditBizForm(f => ({ ...f, services: t }))} />
-            <TextInput placeholder="Contact Phone" style={styles.input} value={editBizForm.contactPhone} onChangeText={t => setEditBizForm(f => ({ ...f, contactPhone: t }))} />
-            <TextInput placeholder="Contact Email" style={styles.input} value={editBizForm.contactEmail} onChangeText={t => setEditBizForm(f => ({ ...f, contactEmail: t }))} />
-            <TextInput placeholder="Address" style={styles.input} value={editBizForm.address} onChangeText={t => setEditBizForm(f => ({ ...f, address: t }))} />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-              <TouchableOpacity style={styles.modalBtnDelete} onPress={handleDeleteBusiness}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Delete</Text>
-              </TouchableOpacity>
-              <View style={{ flexDirection: 'row' }}>
-                <TouchableOpacity style={styles.modalBtn} onPress={() => setEditBizIndex(null)}>
-                  <Text>Cancel</Text>
+            <Text style={styles.modalTitle}>
+              {editBizIndex !== null ? 'Edit Business' : 'Add Business'}
+            </Text>
+            <TextInput 
+              placeholder="Business Name *" 
+              style={styles.input} 
+              value={editBizIndex !== null ? editBizForm.name : bizForm.name} 
+              onChangeText={t => editBizIndex !== null ? setEditBizForm(f => ({ ...f, name: t })) : setBizForm(f => ({ ...f, name: t }))} 
+            />
+            <TextInput 
+              placeholder="Description *" 
+              style={styles.input} 
+              value={editBizIndex !== null ? editBizForm.description : bizForm.description} 
+              onChangeText={t => editBizIndex !== null ? setEditBizForm(f => ({ ...f, description: t })) : setBizForm(f => ({ ...f, description: t }))} 
+            />
+            <TextInput 
+              placeholder="Services *" 
+              style={styles.input} 
+              value={editBizIndex !== null ? editBizForm.services : bizForm.services} 
+              onChangeText={t => editBizIndex !== null ? setEditBizForm(f => ({ ...f, services: t })) : setBizForm(f => ({ ...f, services: t }))} 
+            />
+            <TextInput 
+              placeholder="Contact Phone *" 
+              style={styles.input} 
+              value={editBizIndex !== null ? editBizForm.contactPhone : bizForm.contactPhone} 
+              onChangeText={t => editBizIndex !== null ? setEditBizForm(f => ({ ...f, contactPhone: t })) : setBizForm(f => ({ ...f, contactPhone: t }))} 
+            />
+            <TextInput 
+              placeholder="Contact Email (Optional)" 
+              style={styles.input} 
+              value={editBizIndex !== null ? editBizForm.contactEmail : bizForm.contactEmail} 
+              onChangeText={t => editBizIndex !== null ? setEditBizForm(f => ({ ...f, contactEmail: t })) : setBizForm(f => ({ ...f, contactEmail: t }))} 
+            />
+            <TextInput 
+              placeholder="Address (Optional)" 
+              style={styles.input} 
+              value={editBizIndex !== null ? editBizForm.address : bizForm.address} 
+              onChangeText={t => editBizIndex !== null ? setEditBizForm(f => ({ ...f, address: t })) : setBizForm(f => ({ ...f, address: t }))} 
+            />
+            
+            {/* Three buttons at bottom */}
+            <View style={styles.modalButtonsContainer}>
+              {editBizIndex !== null && (
+                <TouchableOpacity 
+                  style={styles.deleteButton} 
+                  onPress={handleDeleteBusiness}
+                >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.modalBtnSave} onPress={handleSaveEditBusiness}>
-                  <Text style={{ color: '#fff' }}>Save</Text>
+              )}
+              <View style={styles.rightButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelButton} 
+                  onPress={() => {
+                    setBizModal(false);
+                    resetForms();
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.updateButton} 
+                  onPress={editBizIndex !== null ? handleSaveEditBusiness : handleAddBusiness}
+                >
+                  <Text style={styles.updateButtonText}>
+                    {editBizIndex !== null ? 'Update' : 'Save'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -302,14 +302,14 @@ const Profile = () => {
 
       {/* Photo Modal */}
       <Modal visible={photoModal} transparent animationType="fade" onRequestClose={() => setPhotoModal(false)}>
-        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setPhotoModal(false)}>
-          <View pointerEvents="box-none">
+        <View style={styles.modalBg}>
+          <TouchableOpacity style={{ padding: 10 }} onPress={() => setPhotoModal(false)}>
             <Image
-              source={user.FaceID && user.FaceID.startsWith('http') ? { uri: user.FaceID } : require('../../assets/femaleDummy.webp')}
+              source={user.picture && user.picture.startsWith('http') ? { uri: user.picture } : require('../../assets/femaleDummy.webp')}
               style={{ width: 300, height: 300, borderRadius: 12, backgroundColor: '#eee', resizeMode: 'cover' }}
             />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </Modal>
     </ScrollView>
   );
@@ -317,6 +317,7 @@ const Profile = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.secondryColor, padding: 15 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   section: { backgroundColor: '#fff', borderRadius: 10, marginBottom: 20, padding: 15, elevation: 2 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.secondryColor, marginBottom: 10 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -324,19 +325,63 @@ const styles = StyleSheet.create({
   label: { fontWeight: 'bold', width: 90, color: '#000' },
   value: { color: '#333' },
   card: { backgroundColor: '#ECEAE4', borderRadius: 8, padding: 10, marginBottom: 10 },
-  cardTitle: { fontWeight: 'bold', fontSize: 16, color: colors.secondryColor },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  cardTitle: { fontWeight: 'bold', fontSize: 16, color: colors.secondryColor, flex: 1 },
   cardText: { color: '#444', marginBottom: 2 },
+  tapHint: { fontSize: 10, color: '#666', fontStyle: 'italic' },
   addBtn: { backgroundColor: colors.primaryColor, borderRadius: 5, paddingHorizontal: 10, paddingVertical: 4 },
   addBtnText: { color: '#fff', fontWeight: 'bold' },
-  editBtn: { alignSelf: 'flex-end', marginTop: 5 },
-  editBtnText: { color: colors.primaryColor, fontWeight: 'bold' },
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 10, padding: 20, width: '90%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  modalContent: { backgroundColor: '#fff', borderRadius: 10, padding: 20, width: '90%', maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 8, marginBottom: 10 },
-  modalBtn: { marginLeft: 10, padding: 8 },
-  modalBtnSave: { marginLeft: 10, padding: 8, backgroundColor: '#4B2E2B', borderRadius: 5 },
-  modalBtnDelete: { padding: 8, backgroundColor: '#d32f2f', borderRadius: 5, paddingHorizontal: 12 },
+  modalButtonsContainer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee'
+  },
+  deleteButton: { 
+    backgroundColor: '#dc3545', 
+    borderRadius: 5, 
+    paddingHorizontal: 20, 
+    paddingVertical: 10 
+  },
+  deleteButtonText: { 
+    color: '#fff', 
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  rightButtons: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  cancelButton: { 
+    backgroundColor: '#6c757d', 
+    borderRadius: 5, 
+    paddingHorizontal: 20, 
+    paddingVertical: 10,
+    marginRight: 10
+  },
+  cancelButtonText: { 
+    color: '#fff', 
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  updateButton: { 
+    backgroundColor: '#4B2E2B', 
+    borderRadius: 5, 
+    paddingHorizontal: 20, 
+    paddingVertical: 10 
+  },
+  updateButtonText: { 
+    color: '#fff', 
+    fontWeight: 'bold',
+    fontSize: 14
+  },
   profilePhoto: {
     width: 56,
     height: 56,
@@ -349,5 +394,3 @@ const styles = StyleSheet.create({
 });
 
 export default Profile;
-
-

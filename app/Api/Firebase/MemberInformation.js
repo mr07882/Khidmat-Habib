@@ -10,8 +10,12 @@ export const getMemberByJCIC = async (jcic) => {
     
     if (snapshot.exists()) {
       const memberData = snapshot.val();
-      // Ensure FamilyMembers is always an array
-      if (!memberData.FamilyMembers) memberData.FamilyMembers = [];
+  // Ensure FamilyMembers is always an array
+  if (!memberData.FamilyMembers) memberData.FamilyMembers = [];
+  // Ensure PhoneNum is present (default to empty string if missing)
+  if (!memberData.PhoneNum) memberData.PhoneNum = '';
+  // Ensure business is always an array
+  if (!memberData.business) memberData.business = [];
       return {
         success: true,
         data: memberData
@@ -39,7 +43,8 @@ export const checkMemberSignupStatus = async (jcic) => {
     if (snapshot.exists()) {
       const memberData = snapshot.val();
       const hasPassword = memberData.Password && memberData.Password.trim() !== '';
-      
+      // Ensure PhoneNum is present (default to empty string if missing)
+      if (!memberData.PhoneNum) memberData.PhoneNum = '';
       return {
         success: true,
         exists: true,

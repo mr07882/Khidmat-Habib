@@ -257,10 +257,14 @@ const checkIsWholeNumber = num => +num === Math.floor(+num);
 // Fetch member details from Firebase Members collection by userId
 export const getMemberDetails = async userId => {
   try {
-    const res = await fetch(`${API_URL}/profile/${userId}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data;
+    // Use normalized API for member profile
+    const { getMemberProfile } = require('../Api/Firebase/ProfileAPI');
+    const result = await getMemberProfile(userId);
+    if (result && result.success) {
+      return result.data;
+    } else {
+      return null;
+    }
   } catch (e) {
     console.log('Error fetching member details:', e);
     return null;
@@ -270,10 +274,14 @@ export const getMemberDetails = async userId => {
 // Fetch all membership cards (user + family) for offline sync
 export const getMembershipCards = async userId => {
   try {
-    const res = await fetch(`${API_URL}/membership-cards/${userId}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data;
+    // Use Firebase API for membership cards
+    const { getMembershipCards } = require('../Api/Firebase/ProfileAPI');
+    const result = await getMembershipCards(userId);
+    if (result && result.success) {
+      return result.data;
+    } else {
+      return null;
+    }
   } catch (e) {
     console.log('Error fetching membership cards:', e);
     return null;
@@ -322,10 +330,14 @@ export const syncMembershipCards = async (userId) => {
 // Get family members from database
 export const getFamilyMembers = async userId => {
   try {
-    const res = await fetch(`${API_URL}/family/${userId}`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.familyMembers || [];
+    // Use Firebase API for family members
+    const { getFamilyMembers } = require('../Api/Firebase/ProfileAPI');
+    const result = await getFamilyMembers(userId);
+    if (result && result.success) {
+      return result.data;
+    } else {
+      return [];
+    }
   } catch (e) {
     console.log('Error fetching family members:', e);
     return [];
