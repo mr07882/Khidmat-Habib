@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { colors } from '../Config/AppConfigData';
 import AttachmentField from '../Components/FormElements/AttachmentField';
 import SubmitButton from '../Components/FormElements/SubmitButton';
+import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  submitDeathInfoForm,
+  validateDeathInfoForm,
+  sanitizeFormData,
+  uploadDocumentToCloudinary
+} from '../Api/Firebase';
 
-const DeathInfoForm = () => {
+const DeathInfoForm = ({ navigation }) => {
   // Deceased Section
   const [deceasedName, setDeceasedName] = useState('');
   const [deceasedAge, setDeceasedAge] = useState('');
@@ -50,6 +58,267 @@ const DeathInfoForm = () => {
   const [informer1CnicAttachment, setInformer1CnicAttachment] = useState(null);
   const [informer2JcicAttachment, setInformer2JcicAttachment] = useState(null);
   const [informer2CnicAttachment, setInformer2CnicAttachment] = useState(null);
+
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+
+  const userId = useSelector(state => state.reducer.userId);
+  
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(userId || storedJCIC);
+      } catch (error) {
+        // Handle error silently
+      }
+    };
+    getUserJCIC();
+  }, [userId]);
+
+  const handleSubmit = async () => {
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
+      return;
+    }
+
+    // Check if required attachments are selected
+    if (!deathCertAttachment) {
+      Alert.alert('Validation Error', 'Death Certificate is required');
+      return;
+    }
+    if (!deceasedJcicAttachment) {
+      Alert.alert('Validation Error', 'JCIC of Deceased is required');
+      return;
+    }
+    if (!deceasedCnicAttachment) {
+      Alert.alert('Validation Error', 'CNIC of Deceased is required');
+      return;
+    }
+    if (!informer1JcicAttachment) {
+      Alert.alert('Validation Error', 'JCIC of Informer 1 is required');
+      return;
+    }
+    if (!informer1CnicAttachment) {
+      Alert.alert('Validation Error', 'CNIC of Informer 1 is required');
+      return;
+    }
+    if (!informer2JcicAttachment) {
+      Alert.alert('Validation Error', 'JCIC of Informer 2 is required');
+      return;
+    }
+    if (!informer2CnicAttachment) {
+      Alert.alert('Validation Error', 'CNIC of Informer 2 is required');
+      return;
+    }
+
+    // Flatten form data
+    const formData = {
+      deceasedName,
+      deceasedAge,
+      deceasedMembership,
+      deceasedCnic,
+      deceasedAddress,
+      causeOfDeath,
+      doctorName,
+      fatherName,
+      fatherSurname,
+      fatherMembership,
+      fatherCnic,
+      husbandName,
+      husbandSurname,
+      husbandMembership,
+      husbandCnic,
+      informer1Name,
+      informer1Surname,
+      informer1Membership,
+      informer1Cnic,
+      informer1Address,
+      informer1Phone,
+      informer2Name,
+      informer2Surname,
+      informer2Membership,
+      informer2Cnic,
+      informer2Address,
+      informer2Phone,
+    };
+
+    const sanitized = sanitizeFormData(formData);
+
+    // Validate form data
+    const validation = validateDeathInfoForm(sanitized);
+    if (!validation.isValid) {
+      Alert.alert('Validation Error', validation.errors.join('\n'));
+      return;
+    }
+
+    // Proceed with form submission
+    submitForm(sanitized);
+  };
+
+  const submitForm = async (data) => {
+    setIsSubmitting(true);
+    try {
+      // Upload all attachments to Cloudinary
+      let deathCertUrl = null, deceasedJcicUrl = null, deceasedCnicUrl = null;
+      let informer1JcicUrl = null, informer1CnicUrl = null;
+      let informer2JcicUrl = null, informer2CnicUrl = null;
+
+      // Upload Death Certificate
+      if (deathCertAttachment) {
+        try {
+          const fileUri = deathCertAttachment.uri || deathCertAttachment.fileCopyUri || deathCertAttachment.path;
+          const fileName = deathCertAttachment.name || 'death_certificate.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            deathCertUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Upload Deceased JCIC
+      if (deceasedJcicAttachment) {
+        try {
+          const fileUri = deceasedJcicAttachment.uri || deceasedJcicAttachment.fileCopyUri || deceasedJcicAttachment.path;
+          const fileName = deceasedJcicAttachment.name || 'deceased_jcic.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            deceasedJcicUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Upload Deceased CNIC
+      if (deceasedCnicAttachment) {
+        try {
+          const fileUri = deceasedCnicAttachment.uri || deceasedCnicAttachment.fileCopyUri || deceasedCnicAttachment.path;
+          const fileName = deceasedCnicAttachment.name || 'deceased_cnic.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            deceasedCnicUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Upload Informer 1 JCIC
+      if (informer1JcicAttachment) {
+        try {
+          const fileUri = informer1JcicAttachment.uri || informer1JcicAttachment.fileCopyUri || informer1JcicAttachment.path;
+          const fileName = informer1JcicAttachment.name || 'informer1_jcic.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            informer1JcicUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Upload Informer 1 CNIC
+      if (informer1CnicAttachment) {
+        try {
+          const fileUri = informer1CnicAttachment.uri || informer1CnicAttachment.fileCopyUri || informer1CnicAttachment.path;
+          const fileName = informer1CnicAttachment.name || 'informer1_cnic.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            informer1CnicUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Upload Informer 2 JCIC
+      if (informer2JcicAttachment) {
+        try {
+          const fileUri = informer2JcicAttachment.uri || informer2JcicAttachment.fileCopyUri || informer2JcicAttachment.path;
+          const fileName = informer2JcicAttachment.name || 'informer2_jcic.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            informer2JcicUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Upload Informer 2 CNIC
+      if (informer2CnicAttachment) {
+        try {
+          const fileUri = informer2CnicAttachment.uri || informer2CnicAttachment.fileCopyUri || informer2CnicAttachment.path;
+          const fileName = informer2CnicAttachment.name || 'informer2_cnic.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/death-info');
+          if (res.success) {
+            informer2CnicUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Validate that all uploads were successful
+      if (!deathCertUrl) {
+        Alert.alert('Upload Error', 'Failed to upload Death Certificate. Please try again.');
+        return;
+      }
+      if (!deceasedJcicUrl) {
+        Alert.alert('Upload Error', 'Failed to upload JCIC of Deceased. Please try again.');
+        return;
+      }
+      if (!deceasedCnicUrl) {
+        Alert.alert('Upload Error', 'Failed to upload CNIC of Deceased. Please try again.');
+        return;
+      }
+      if (!informer1JcicUrl) {
+        Alert.alert('Upload Error', 'Failed to upload JCIC of Informer 1. Please try again.');
+        return;
+      }
+      if (!informer1CnicUrl) {
+        Alert.alert('Upload Error', 'Failed to upload CNIC of Informer 1. Please try again.');
+        return;
+      }
+      if (!informer2JcicUrl) {
+        Alert.alert('Upload Error', 'Failed to upload JCIC of Informer 2. Please try again.');
+        return;
+      }
+      if (!informer2CnicUrl) {
+        Alert.alert('Upload Error', 'Failed to upload CNIC of Informer 2. Please try again.');
+        return;
+      }
+
+      const finalData = {
+        ...data,
+        deathCertUrl,
+        deceasedJcicUrl,
+        deceasedCnicUrl,
+        informer1JcicUrl,
+        informer1CnicUrl,
+        informer2JcicUrl,
+        informer2CnicUrl,
+        submittedByJCIC: userJCIC,
+      };
+
+      const result = await submitDeathInfoForm(userJCIC, finalData);
+      if (result.success) {
+        Alert.alert('Success', 'Death information form submitted successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit form.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 32}}>
@@ -135,7 +404,14 @@ const DeathInfoForm = () => {
         onPick={setInformer2CnicAttachment}
       />
 
-      <SubmitButton title="Submit" onPress={() => { /* Handle form submission */ }} />
+      {isSubmitting && (
+        <View style={{ alignItems: 'center', marginVertical: 12 }}>
+          <ActivityIndicator size="large" color={colors.secondryColor} />
+          <Text style={{ marginTop: 8, color: colors.secondryColor }}>Submitting form...</Text>
+        </View>
+      )}
+
+      <SubmitButton title={isSubmitting ? 'Submitting...' : 'Submit'} onPress={handleSubmit} disabled={isSubmitting} />
     </ScrollView>
   );
 };

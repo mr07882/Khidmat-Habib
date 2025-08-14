@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import InputField from '../Components/FormElements/InputField';
 import SubmitButton from '../Components/FormElements/SubmitButton';
 import AttachmentField from '../Components/FormElements/AttachmentField';
 import { colors } from '../Config/AppConfigData';
+import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  submitBusBookingForm,
+  validateBusBookingForm,
+  sanitizeFormData,
+  uploadDocumentToCloudinary
+} from '../Api/Firebase';
 
-const BusBookingForm = () => {
+const BusBookingForm = ({ navigation }) => {
   // Applicant Details
   const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
@@ -24,30 +32,107 @@ const BusBookingForm = () => {
   // Attachments
   const [jcicFile, setJcicFile] = useState(null);
 
-  const handleSubmit = () => {
-    const data = {
-      applicant: {
-        fullName,
-        address,
-        membershipNumber,
-        cellNo,
-        resNo,
-      },
-      booking: {
-        dateOfBooking,
-        pickUpPoint,
-        purpose,
-        bookingTime,
-        timeOut,
-        totalHours,
-      },
-      attachments: {
-        jcicFile,
-      },
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+
+  const userId = useSelector(state => state.reducer.userId);
+  
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(userId || storedJCIC);
+      } catch (error) {
+        // Handle error silently
+      }
+    };
+    getUserJCIC();
+  }, [userId]);
+
+  const handleSubmit = async () => {
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
+      return;
+    }
+
+    // Check if required attachment is selected
+    if (!jcicFile) {
+      Alert.alert('Validation Error', 'JCIC/CNIC copy is required');
+      return;
+    }
+
+    // Flatten form data
+    const formData = {
+      fullName,
+      address,
+      membershipNumber,
+      cellNo,
+      resNo,
+      dateOfBooking,
+      pickUpPoint,
+      purpose,
+      bookingTime,
+      timeOut,
+      totalHours,
     };
 
-    console.log('Bus Booking Submission:', data);
-    // TODO: Submit to backend or handle data
+    const sanitized = sanitizeFormData(formData);
+
+    // Validate form data (excluding file upload validation)
+    const validation = validateBusBookingForm(sanitized);
+    if (!validation.isValid) {
+      Alert.alert('Validation Error', validation.errors.join('\n'));
+      return;
+    }
+
+    // Proceed with form submission
+    submitForm(sanitized);
+  };
+
+  const submitForm = async (data) => {
+    setIsSubmitting(true);
+    try {
+      // Upload JCIC/CNIC file to Cloudinary
+      let jcicFileUrl = null;
+      if (jcicFile) {
+        try {
+          const fileUri = jcicFile.uri || jcicFile.fileCopyUri || jcicFile.path;
+          const fileName = jcicFile.name || 'jcic_scan.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/bus-booking');
+          if (res.success) {
+            jcicFileUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Validate that upload was successful
+      if (!jcicFileUrl) {
+        Alert.alert('Upload Error', 'Failed to upload JCIC/CNIC copy. Please try again.');
+        return;
+      }
+
+      const finalData = {
+        ...data,
+        jcicFileUrl,
+        submittedByJCIC: userJCIC,
+      };
+
+      const result = await submitBusBookingForm(userJCIC, finalData);
+      if (result.success) {
+        Alert.alert('Success', 'Bus booking submitted successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit form.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -194,7 +279,14 @@ const BusBookingForm = () => {
         </Text>
       </View>
 
-      <SubmitButton onPress={handleSubmit} />
+      {isSubmitting && (
+        <View style={{ alignItems: 'center', marginVertical: 12 }}>
+          <ActivityIndicator size="large" color={colors.secondryColor} />
+          <Text style={{ marginTop: 8, color: colors.secondryColor }}>Submitting form...</Text>
+        </View>
+      )}
+
+      <SubmitButton onPress={handleSubmit} title={isSubmitting ? 'Submitting...' : 'Submit'} disabled={isSubmitting} />
     </ScrollView>
   );
 };

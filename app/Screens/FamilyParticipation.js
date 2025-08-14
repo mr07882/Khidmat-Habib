@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import InputField from '../Components/FormElements/InputField';
 import { colors } from '../Config/AppConfigData';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import PhotoUpload from '../Components/FormElements/PhotoUpload';
 import SubmitButton from '../Components/FormElements/SubmitButton';
+import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  submitFamilyParticipationForm, 
+  validateFamilyParticipationForm, 
+  sanitizeFormData,
+  uploadImageToCloudinary
+} from '../Api/Firebase';
 
 const paymentFrequencies = [
   { label: 'Monthly', value: 'monthly' },
@@ -35,6 +43,25 @@ const FamilyParticipation = ({ navigation }) => {
   const [signature, setSignature] = useState('');
   const [address, setAddress] = useState('');
   const [transactionSlip, setTransactionSlip] = useState(null);
+  
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+  
+  // Get user JCIC from Redux or AsyncStorage
+  const userId = useSelector(state => state.reducer.userId);
+  
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(userId || storedJCIC);
+          } catch (error) {
+      // Handle error silently
+    }
+    };
+    getUserJCIC();
+  }, [userId]);
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -54,13 +81,119 @@ const FamilyParticipation = ({ navigation }) => {
     setArr([value]);
   };
 
-  const handleSubmit = () => {
-    if (!name || !relation || !amount || frequency.length === 0 || mode.length === 0 || !signature || !membershipNo || !email || !address || !cellNo) {
-      Alert.alert('Incomplete', 'Please fill all required fields.');
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
       return;
     }
-    Alert.alert('Submitted', 'Your Family Participation request has been submitted.');
-    navigation.goBack();
+    
+    // Prepare form data
+    const formData = {
+      name: name || '',
+      relation: relation || '',
+      relationship: relationship || '',
+      membershipNo: membershipNo || '',
+      email: email || '',
+      cellNo: cellNo || '',
+      ptclNo: ptclNo || '',
+      amount: amount || '',
+      frequency: frequency || [],
+      mode: mode || [],
+      chequeName: chequeName || '',
+      signature: signature || '',
+      address: address || '',
+      transactionSlip: transactionSlip || null,
+      date: date.toISOString(),
+    };
+    
+    // Sanitize form data
+    const sanitizedData = sanitizeFormData(formData);
+    
+    // Validate form data
+    try {
+      const validation = validateFamilyParticipationForm(sanitizedData);
+      
+      if (!validation.isValid) {
+        Alert.alert(
+          'Validation Error',
+          `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred during validation. Please try again.');
+      return;
+    }
+    
+    // Show warnings if any
+    try {
+      if (validation.warnings.length > 0) {
+        Alert.alert(
+          'Warnings',
+          `Please note:\n\n${validation.warnings.join('\n')}`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Continue', onPress: () => submitForm(sanitizedData) }
+          ]
+        );
+      } else {
+        submitForm(sanitizedData);
+      }
+    } catch (error) {
+      // If there's an error with warnings, just proceed with submission
+      submitForm(sanitizedData);
+    }
+  };
+  
+  // Submit form to Firebase
+  const submitForm = async (formData) => {
+    setIsSubmitting(true);
+    
+    try {
+      // Upload transaction slip if provided
+      let transactionSlipUrl = null;
+      if (transactionSlip) {
+        const uploadResult = await uploadImageToCloudinary(transactionSlip, 'forms/family-participation');
+        if (uploadResult.success) {
+          transactionSlipUrl = uploadResult.url;
+        } else {
+          Alert.alert('Error', 'Failed to upload transaction slip. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // Prepare final data
+      const finalData = {
+        ...formData,
+        transactionSlipUrl,
+        submittedByJCIC: userJCIC,
+      };
+      
+      // Submit to Firebase
+      const result = await submitFamilyParticipationForm(userJCIC, finalData);
+      
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          'Family participation form submitted successfully! Your participation request has been received.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit form. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -165,7 +298,36 @@ const FamilyParticipation = ({ navigation }) => {
           <PhotoUpload photo={transactionSlip} setPhoto={setTransactionSlip} />
         </View>
       )}
-      <SubmitButton onPress={handleSubmit} label="Submit" style={{ marginTop: 24 }} />
+      
+      {/* Signature Section */}
+      <Text style={styles.sectionHeader}>Declaration</Text>
+      <InputField
+        label="Signature"
+        value={signature}
+        onChangeText={setSignature}
+        placeholder="Enter your full name as signature"
+      />
+      <InputField
+        label="Address"
+        value={address}
+        onChangeText={setAddress}
+        placeholder="Enter your complete address"
+        multiline={true}
+      />
+      
+      {isSubmitting && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.secondryColor} />
+          <Text style={styles.loadingText}>Submitting form...</Text>
+        </View>
+      )}
+      
+      <SubmitButton 
+        onPress={handleSubmit} 
+        title={isSubmitting ? "Submitting..." : "Submit"} 
+        style={{ marginTop: 24 }}
+        disabled={isSubmitting}
+      />
     </ScrollView>
   );
 };
@@ -267,6 +429,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
     marginBottom: 8,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: colors.secondryColor,
   },
 });
 

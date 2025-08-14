@@ -18,6 +18,80 @@ export {
 // Email Service
 export { sendOTPEmail, sendOTPSMS } from './emailService';
 
+// Form APIs
+export { 
+  submitNominationForm, 
+  getNominationForm, 
+  getAllNominationForms, 
+  updateNominationStatus,
+  submitNominationWithdrawalForm,
+  getNominationWithdrawalForm,
+  getAllNominationWithdrawalForms,
+  updateNominationWithdrawalStatus,
+  submitCandidateRetirementForm,
+  getCandidateRetirementForm,
+  getAllCandidateRetirementForms,
+  updateCandidateRetirementStatus,
+  submitFamilyParticipationForm,
+  getFamilyParticipationForm,
+  getAllFamilyParticipationForms,
+  updateFamilyParticipationStatus,
+  submitEducationDonationBoxForm,
+  getEducationDonationBoxForm,
+  getAllEducationDonationBoxForms,
+  updateEducationDonationBoxStatus,
+  submitHallBookingForm,
+  getHallBookingForm,
+  getAllHallBookingForms,
+  updateHallBookingStatus,
+  submitBusBookingForm,
+  getBusBookingForm,
+  getAllBusBookingForms,
+  updateBusBookingStatus,
+  submitDeathInfoForm,
+  getDeathInfoForm,
+  getAllDeathInfoForms,
+  updateDeathInfoStatus,
+  submitForm,
+  getForm
+} from './FormAPI';
+
+// Cloudinary Service (for backward compatibility)
+export { 
+  uploadImageToCloudinary, 
+  uploadDocumentToCloudinary, 
+  uploadMultipleFiles,
+  deleteFileFromCloudinary,
+  getFileInfo
+} from './CloudinaryService';
+
+// Firebase Storage Service (recommended for forms)
+export {
+  uploadImageToFirebaseStorage,
+  uploadDocumentToFirebaseStorage,
+  uploadMultipleFilesToFirebaseStorage,
+  deleteFileFromFirebaseStorage,
+  getFileInfoFromFirebaseStorage
+} from './FirebaseStorageService';
+
+// Form Validation
+export { 
+  validateNominationForm, 
+  validateNominationWithdrawalForm,
+  validateCandidateRetirementForm,
+  validateFamilyParticipationForm,
+  validateEducationDonationBoxForm,
+  validateHallBookingForm,
+  validateBusBookingForm,
+  validateDeathInfoForm,
+  validateEmail, 
+  validatePhone, 
+  validateRequired, 
+  validateDate,
+  validateFileUpload,
+  sanitizeFormData
+} from './FormValidation';
+
 // Utility Functions
 export { 
   searchMembersByField, 
@@ -27,8 +101,7 @@ export {
   sanitizeMemberData 
 } from './utils';
 
-// Test Functions (for development/testing)
-export { testFirebaseAuth, testMemberInfo } from './test';
+
 
 // Legacy functions (keeping for backward compatibility)
 // Write data example

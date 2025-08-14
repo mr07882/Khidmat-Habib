@@ -1,10 +1,18 @@
-import React, {useState} from 'react';
-import {View, Text, ScrollView, StyleSheet} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator} from 'react-native';
 import {colors} from '../Config/AppConfigData';
 import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import PhotoUpload from '../Components/FormElements/PhotoUpload';
 import SubmitButton from '../Components/FormElements/SubmitButton';
+import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  submitNominationForm, 
+  validateNominationForm, 
+  sanitizeFormData,
+  uploadImageToCloudinary 
+} from '../Api/Firebase';
 
 const officeOptions = [
   'President',
@@ -16,7 +24,7 @@ const officeOptions = [
   'Women Councillor (Female Only)',
 ];
 
-const NominationForm = () => {
+const NominationForm = ({ navigation }) => {
   const [photo, setPhoto] = useState(null);
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('male');
@@ -47,6 +55,143 @@ const NominationForm = () => {
   const [ballotName, setBallotName] = useState('');
   const [candidateSignature, setCandidateSignature] = useState('');
   const [candidateDate, setCandidateDate] = useState('');
+  
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+  
+  // Get user JCIC from Redux or AsyncStorage
+  const userId = useSelector(state => state.reducer.userId);
+  
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(userId || storedJCIC);
+      } catch (error) {
+        console.error('Error getting user JCIC:', error);
+      }
+    };
+    getUserJCIC();
+  }, [userId]);
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
+      return;
+    }
+    
+    // Prepare form data
+    const formData = {
+      photo,
+      fullName,
+      gender,
+      fatherOrHusband,
+      surname,
+      jid,
+      contact,
+      email,
+      office,
+      membershipDate,
+      dob,
+      proposerName,
+      proposerSurname,
+      proposerJid,
+      proposerContact,
+      proposerEmail,
+      proposerSignature,
+      seconderName,
+      seconderSurname,
+      seconderJid,
+      seconderContact,
+      seconderEmail,
+      seconderSignature,
+      isFiler,
+      ballotName,
+      candidateSignature,
+      candidateDate,
+    };
+    
+    // Sanitize form data
+    const sanitizedData = sanitizeFormData(formData);
+    
+    // Validate form data
+    const validation = validateNominationForm(sanitizedData);
+    
+    if (!validation.isValid) {
+      Alert.alert(
+        'Validation Error',
+        `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Show warnings if any
+    if (validation.warnings.length > 0) {
+      Alert.alert(
+        'Warnings',
+        `Please note:\n\n${validation.warnings.join('\n')}`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: () => submitForm(sanitizedData) }
+        ]
+      );
+    } else {
+      submitForm(sanitizedData);
+    }
+  };
+  
+  // Submit form to Firebase
+  const submitForm = async (formData) => {
+    setIsSubmitting(true);
+    
+    try {
+      // Upload photo if provided
+      let photoUrl = null;
+      if (photo) {
+        const photoUploadResult = await uploadImageToCloudinary(photo, 'forms/nominations');
+        if (photoUploadResult.success) {
+          photoUrl = photoUploadResult.url;
+        } else {
+          Alert.alert('Error', 'Failed to upload photo. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // Prepare final data with photo URL
+      const finalData = {
+        ...formData,
+        photoUrl,
+        submittedByJCIC: userJCIC,
+      };
+      
+      // Submit to Firebase
+      const result = await submitNominationForm(userJCIC, finalData);
+      
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          'Nomination form submitted successfully! You will be notified about the status of your application.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit form. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting nomination form:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 32}}>
@@ -103,10 +248,10 @@ const NominationForm = () => {
       <InputField label="Email (Optional)" value={seconderEmail} onChangeText={setSeconderEmail} placeholder="Email (Optional)" keyboardType="email-address" />
       <InputField label="Signature" value={seconderSignature} onChangeText={setSeconderSignature} placeholder="Signature" />
 
-      {/* Section 3: Candidate’s Consent & Declaration */}
-      <Text style={styles.section}>Section 3: Candidate’s Consent & Declaration</Text>
+      {/* Section 3: Candidate's Consent & Declaration */}
+      <Text style={styles.section}>Section 3: Candidate's Consent & Declaration</Text>
       <Text style={styles.declarationText}>I, the candidate, hereby consent to this nomination and affirm that:</Text>
-      <Text style={styles.declarationText}>- I will abide by the Jamaat’s Constitution and Bye-Laws.</Text>
+      <Text style={styles.declarationText}>- I will abide by the Jamaat's Constitution and Bye-Laws.</Text>
       <Text style={styles.declarationText}>- I will serve diligently if elected.</Text>
       <RadioGroup
         options={[
@@ -135,7 +280,20 @@ const NominationForm = () => {
       <Text style={styles.declarationText}>  Jamaat reserves the right to reject any nomination without explanation.</Text>
       <Text style={styles.declarationText}>  False information will lead to disqualification.</Text>
       <Text style={styles.declarationText}>  Withdrawal must be submitted in writing before the election date.</Text>
-      <SubmitButton label="Submit" onPress={() => {}} style={{ marginTop: 24 }} />
+      
+      {isSubmitting && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.secondryColor} />
+          <Text style={styles.loadingText}>Submitting form...</Text>
+        </View>
+      )}
+      
+      <SubmitButton 
+        label={isSubmitting ? "Submitting..." : "Submit"} 
+        onPress={handleSubmit} 
+        style={{ marginTop: 24 }}
+        disabled={isSubmitting}
+      />
     </ScrollView>
   );
 };
@@ -209,6 +367,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.secondryColor,
     opacity: 1,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: colors.secondryColor,
   },
 });
 

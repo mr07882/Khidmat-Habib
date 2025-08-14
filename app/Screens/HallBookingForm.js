@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import SubmitButton from '../Components/FormElements/SubmitButton';
 import AttachmentField from '../Components/FormElements/AttachmentField';
 import { colors } from '../Config/AppConfigData';
+import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  submitHallBookingForm,
+  validateHallBookingForm,
+  sanitizeFormData,
+  uploadDocumentToCloudinary
+} from '../Api/Firebase';
 
 const purposeOptions = [
   { label: 'Majlis', value: 'majlis' },
@@ -34,7 +42,7 @@ const serveOptions = [
   { label: 'Other', value: 'other' },
 ];
 
-const HallBookingForm = () => {
+const HallBookingForm = ({ navigation }) => {
   // Section 1: Applicant Details
   const [fullName, setFullName] = useState('');
   const [fatherName, setFatherName] = useState('');
@@ -67,40 +75,136 @@ const HallBookingForm = () => {
   const [requestLetter, setRequestLetter] = useState(null);
   const [paymentReceipt, setPaymentReceipt] = useState(null);
 
-  const handleSubmit = () => {
-    const data = {
-      applicant: {
-        fullName,
-        fatherName,
-        surname,
-        organization,
-        designation,
-        jcic,
-        cnic,
-        address,
-      },
-      purpose: {
-        type: purpose,
-        otherDetail: purpose === 'other' ? otherPurposeDetail : '',
-      },
-      booking: {
-        hall,
-        fatimiyahDetail: hall === 'fatimiyah' ? fatimiyahDetail : '',
-        otherHallDetail: hall === 'other' ? otherHallDetail : '',
-        bookingDay,
-        bookingDate,
-        timingFrom,
-        timingTo,
-        totalHours,
-        serving: {
-          item: serveItem,
-          otherDetail: serveItem === 'other' ? otherServeDetail : '',
-        },
-      },
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+
+  const userId = useSelector(state => state.reducer.userId);
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(userId || storedJCIC);
+      } catch (error) {}
+    };
+    getUserJCIC();
+  }, [userId]);
+
+  const handleSubmit = async () => {
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
+      return;
+    }
+
+    // Flatten form data
+    const formData = {
+      fullName, fatherName, surname, organization, designation, jcic, cnic, address,
+      purpose, otherPurposeDetail,
+      hall, fatimiyahDetail, otherHallDetail,
+      bookingDay, bookingDate, timingFrom, timingTo, totalHours,
+      serveItem, otherServeDetail,
     };
 
-    console.log('Hall Booking Submission:', data);
-    // TODO: Submit to backend or handle data
+    const sanitized = sanitizeFormData(formData);
+
+    // Check if all required attachments are selected
+    if (!jcicFile) {
+      Alert.alert('Validation Error', 'JCIC/CNIC scan is required');
+      return;
+    }
+    if (!requestLetter) {
+      Alert.alert('Validation Error', 'Request letter is required');
+      return;
+    }
+    if (!paymentReceipt) {
+      Alert.alert('Validation Error', 'Payment receipt is required');
+      return;
+    }
+
+    // Proceed with form submission
+    submitForm(sanitized);
+  };
+
+  const submitForm = async (data) => {
+    setIsSubmitting(true);
+    try {
+      // Upload attachments to Cloudinary if present
+      let jcicFileUrl = null, requestLetterUrl = null, paymentReceiptUrl = null;
+      
+      if (jcicFile) {
+        try {
+          const fileUri = jcicFile.uri || jcicFile.fileCopyUri || jcicFile.path;
+          const fileName = jcicFile.name || 'jcic_scan.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/hall-booking');
+          if (res.success) {
+            jcicFileUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+      
+      if (requestLetter) {
+        try {
+          const fileUri = requestLetter.uri || requestLetter.fileCopyUri || requestLetter.path;
+          const fileName = requestLetter.name || 'request_letter.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/hall-booking');
+          if (res.success) {
+            requestLetterUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+      
+      if (paymentReceipt) {
+        try {
+          const fileUri = paymentReceipt.uri || paymentReceipt.fileCopyUri || paymentReceipt.path;
+          const fileName = paymentReceipt.name || 'payment_receipt.pdf';
+          const res = await uploadDocumentToCloudinary(fileUri, fileName, 'forms/hall-booking');
+          if (res.success) {
+            paymentReceiptUrl = res.url;
+          }
+        } catch (uploadError) {
+          // Continue without throwing error
+        }
+      }
+
+      // Validate that all uploads were successful
+      if (!jcicFileUrl) {
+        Alert.alert('Upload Error', 'Failed to upload JCIC/CNIC scan. Please try again.');
+        return;
+      }
+      if (!requestLetterUrl) {
+        Alert.alert('Upload Error', 'Failed to upload request letter. Please try again.');
+        return;
+      }
+      if (!paymentReceiptUrl) {
+        Alert.alert('Upload Error', 'Failed to upload payment receipt. Please try again.');
+        return;
+      }
+
+      const finalData = {
+        ...data,
+        jcicFileUrl,
+        requestLetterUrl,
+        paymentReceiptUrl,
+        submittedByJCIC: userJCIC,
+      };
+
+      const result = await submitHallBookingForm(userJCIC, finalData);
+      if (result.success) {
+        Alert.alert('Success', 'Hall booking submitted successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit form.');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -215,6 +319,12 @@ const HallBookingForm = () => {
         onPick={setPaymentReceipt}
       />
 
+      {isSubmitting && (
+        <View style={{ alignItems: 'center', marginVertical: 12 }}>
+          <ActivityIndicator size="large" color={colors.secondryColor} />
+          <Text style={{ marginTop: 8, color: colors.secondryColor }}>Submitting form...</Text>
+        </View>
+      )}
 
       {/* Undertaking Section */}
       <Text style={styles.section}>Undertaking</Text>
@@ -280,7 +390,7 @@ const HallBookingForm = () => {
 
 
 
-      <SubmitButton onPress={handleSubmit} />
+      <SubmitButton onPress={handleSubmit} title={isSubmitting ? 'Submitting...' : 'Submit'} disabled={isSubmitting} />
     </ScrollView>
   );
 };

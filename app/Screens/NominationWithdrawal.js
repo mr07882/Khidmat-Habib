@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import InputField from '../Components/FormElements/InputField';
 import { colors } from '../Config/AppConfigData';
 import SubmitButton from '../Components/FormElements/SubmitButton';
+import { useSelector } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  submitNominationWithdrawalForm, 
+  validateNominationWithdrawalForm, 
+  sanitizeFormData
+} from '../Api/Firebase';
 
 const NominationWithdrawal = ({ navigation }) => {
   const [date, setDate] = useState(new Date());
@@ -13,19 +20,102 @@ const NominationWithdrawal = ({ navigation }) => {
   const [serialNumber, setSerialNumber] = useState('');
   const [jcic, setJcic] = useState('');
   const [signature, setSignature] = useState('');
+  
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userJCIC, setUserJCIC] = useState(null);
+  
+  // Get user JCIC from Redux or AsyncStorage
+  const userId = useSelector(state => state.reducer.userId);
+  
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(userId || storedJCIC);
+      } catch (error) {
+        console.error('Error getting user JCIC:', error);
+      }
+    };
+    getUserJCIC();
+  }, [userId]);
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) setDate(selectedDate);
   };
 
-  const handleSubmit = () => {
-    if (!candidateName || !fatherOrHusband || !post || !serialNumber || !jcic || !signature) {
-      Alert.alert('Incomplete', 'Please fill all fields.');
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
       return;
     }
-    Alert.alert('Submitted', 'Your withdrawal request has been submitted.');
-    navigation.goBack();
+    
+    // Prepare form data
+    const formData = {
+      candidateName,
+      fatherOrHusband,
+      post,
+      serialNumber,
+      jcic,
+      signature,
+      date: date.toISOString(),
+    };
+    
+    // Sanitize form data
+    const sanitizedData = sanitizeFormData(formData);
+    
+    // Validate form data
+    const validation = validateNominationWithdrawalForm(sanitizedData);
+    
+    if (!validation.isValid) {
+      Alert.alert(
+        'Validation Error',
+        `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Submit form
+    submitForm(sanitizedData);
+  };
+  
+  // Submit form to Firebase
+  const submitForm = async (formData) => {
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare final data
+      const finalData = {
+        ...formData,
+        submittedByJCIC: userJCIC,
+      };
+      
+      // Submit to Firebase
+      const result = await submitNominationWithdrawalForm(userJCIC, finalData);
+      
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          'Nomination withdrawal form submitted successfully! Your withdrawal request has been received.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit form. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting nomination withdrawal form:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,7 +171,20 @@ const NominationWithdrawal = ({ navigation }) => {
         onChangeText={setSignature}
         placeholder="Signature"
       />
-      <SubmitButton onPress={handleSubmit} label="Submit" style={{ marginTop: 24 }} />
+      
+      {isSubmitting && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.secondryColor} />
+          <Text style={styles.loadingText}>Submitting form...</Text>
+        </View>
+      )}
+      
+      <SubmitButton 
+        onPress={handleSubmit} 
+        label={isSubmitting ? "Submitting..." : "Submit"} 
+        style={{ marginTop: 24 }}
+        disabled={isSubmitting}
+      />
     </ScrollView>
   );
 };
@@ -151,6 +254,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: colors.secondryColor,
   },
 });
 
