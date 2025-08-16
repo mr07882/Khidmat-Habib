@@ -8,6 +8,7 @@ const RadioGroup = ({
   onChange,
   radioColor,
   direction = 'row', // Default is horizontal
+  error,
 }) => (
   <View
     style={[
@@ -45,6 +46,7 @@ const RadioGroup = ({
         </TouchableOpacity>
       );
     })}
+    {error ? <Text style={styles.errorText}>{error}</Text> : null}
   </View>
 );
 
@@ -70,6 +72,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     marginVertical: 6,
     backgroundColor: '#fff', // default, will be overridden inline
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 13,
+    marginTop: 4,
   },
 });
 

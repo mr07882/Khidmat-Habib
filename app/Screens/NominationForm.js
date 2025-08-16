@@ -5,6 +5,7 @@ import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import PhotoUpload from '../Components/FormElements/PhotoUpload';
 import SubmitButton from '../Components/FormElements/SubmitButton';
+import DropDownMenu from '../Components/FormElements/DropDownMenu';
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
@@ -14,14 +15,15 @@ import {
   uploadImageToCloudinary 
 } from '../Api/Firebase';
 
+// Updated officeOptions to include label and value properties
 const officeOptions = [
-  'President',
-  'Vice President',
-  'Hon. Secretary',
-  'Hon. Treasurer',
-  'Hon. Joint Secretary',
-  'Member Managing Committee',
-  'Women Councillor (Female Only)',
+  { label: 'President', value: 'President' },
+  { label: 'Vice President', value: 'Vice President' },
+  { label: 'Hon. Secretary', value: 'Hon. Secretary' },
+  { label: 'Hon. Treasurer', value: 'Hon. Treasurer' },
+  { label: 'Hon. Joint Secretary', value: 'Hon. Joint Secretary' },
+  { label: 'Member Managing Committee', value: 'Member Managing Committee' },
+  { label: 'Women Councillor (Female Only)', value: 'Women Councillor (Female Only)' },
 ];
 
 const NominationForm = ({ navigation }) => {
@@ -30,7 +32,7 @@ const NominationForm = ({ navigation }) => {
   const [gender, setGender] = useState('male');
   const [fatherOrHusband, setFatherOrHusband] = useState('');
   const [surname, setSurname] = useState('');
-  const [jid, setJid] = useState('');
+  const [jcic, setJcic] = useState('');
   const [contact, setContact] = useState('');
   const [email, setEmail] = useState('');
   const [office, setOffice] = useState('');
@@ -39,26 +41,23 @@ const NominationForm = ({ navigation }) => {
   // Proposer
   const [proposerName, setProposerName] = useState('');
   const [proposerSurname, setProposerSurname] = useState('');
-  const [proposerJid, setProposerJid] = useState('');
+  const [proposerJcic, setProposerJcic] = useState('');
   const [proposerContact, setProposerContact] = useState('');
   const [proposerEmail, setProposerEmail] = useState('');
-  const [proposerSignature, setProposerSignature] = useState('');
   // Seconder
   const [seconderName, setSeconderName] = useState('');
   const [seconderSurname, setSeconderSurname] = useState('');
-  const [seconderJid, setSeconderJid] = useState('');
+  const [seconderJcic, setSeconderJcic] = useState('');
   const [seconderContact, setSeconderContact] = useState('');
   const [seconderEmail, setSeconderEmail] = useState('');
-  const [seconderSignature, setSeconderSignature] = useState('');
   // Declaration
   const [isFiler, setIsFiler] = useState(null);
   const [ballotName, setBallotName] = useState('');
-  const [candidateSignature, setCandidateSignature] = useState('');
-  const [candidateDate, setCandidateDate] = useState('');
   
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userJCIC, setUserJCIC] = useState(null);
+  const [errors, setErrors] = useState({});
   
   // Get user JCIC from Redux or AsyncStorage
   const userId = useSelector(state => state.reducer.userId);
@@ -89,7 +88,7 @@ const NominationForm = ({ navigation }) => {
       gender,
       fatherOrHusband,
       surname,
-      jid,
+      jcic,
       contact,
       email,
       office,
@@ -97,20 +96,17 @@ const NominationForm = ({ navigation }) => {
       dob,
       proposerName,
       proposerSurname,
-      proposerJid,
+      proposerJcic,
       proposerContact,
       proposerEmail,
-      proposerSignature,
       seconderName,
       seconderSurname,
-      seconderJid,
+      seconderJcic,
       seconderContact,
       seconderEmail,
-      seconderSignature,
       isFiler,
       ballotName,
-      candidateSignature,
-      candidateDate,
+      submittedAt: new Date().toISOString(),
     };
     
     // Sanitize form data
@@ -120,13 +116,43 @@ const NominationForm = ({ navigation }) => {
     const validation = validateNominationForm(sanitizedData);
     
     if (!validation.isValid) {
-      Alert.alert(
-        'Validation Error',
-        `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
-        [{ text: 'OK' }]
-      );
+      const fieldErrors = {};
+      validation.errors.forEach((error) => {
+        // Improved mapping: match error to field by checking for exact field label in error string
+        Object.entries({
+          fullName: 'Full Name',
+          fatherOrHusband: 'Father/Husband Name',
+          surname: 'Surname',
+          jcic: 'JCIC',
+          contact: 'Contact Number',
+          office: 'Office Applying For',
+          membershipDate: 'Membership Date',
+          dob: 'Date of Birth',
+          proposerName: 'Proposer Name',
+          proposerSurname: 'Proposer Surname',
+          proposerJcic: 'Proposer JCIC',
+          proposerContact: 'Proposer Contact',
+          seconderName: 'Seconder Name',
+          seconderSurname: 'Seconder Surname',
+          seconderJcic: 'Seconder JCIC',
+          seconderContact: 'Seconder Contact',
+          ballotName: 'Ballot Name',
+          photo: 'Photo Upload',
+          email: 'Email',
+          proposerEmail: 'Proposer Email',
+          seconderEmail: 'Seconder Email',
+        }).forEach(([key, label]) => {
+          // Only match if error starts with the label (to avoid mapping 'Seconder Surname' to 'Surname')
+          if (error.startsWith(label)) {
+            fieldErrors[key] = error;
+          }
+        });
+      });
+      setErrors(fieldErrors);
       return;
     }
+    
+    setErrors({});
     
     // Show warnings if any
     if (validation.warnings.length > 0) {
@@ -194,7 +220,7 @@ const NominationForm = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: 32}}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
       {/* Information Section */}
       <Text style={styles.title}>Nomination Form</Text>
       <Text style={styles.infoText}>
@@ -203,8 +229,28 @@ const NominationForm = ({ navigation }) => {
 
       {/* Section 1: Candidate Details */}
       <Text style={styles.section}>Section 1: Candidate Details</Text>
-      <PhotoUpload photo={photo} setPhoto={setPhoto} />
-      <InputField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Full Name" />
+      <PhotoUpload
+        photo={photo}
+        setPhoto={(uri) => {
+          uploadImageToCloudinary(uri, 'forms/nominations')
+            .then((result) => {
+              if (result.success) {
+                setPhoto(result.url);
+              } else {
+                Alert.alert('Upload Error', result.error);
+              }
+            })
+            .catch((error) => Alert.alert('Upload Error', error.message));
+        }}
+        error={errors.photo}
+      />
+      <InputField 
+        label="Full Name" 
+        value={fullName} 
+        onChangeText={setFullName} 
+        placeholder="Enter the full name as on the Jamaat ID Card."
+        error={errors.fullName}
+      />
       <RadioGroup
         options={[
           {label: <Text style={{color: colors.secondryColor}}>Mr.</Text>, value: 'male'},
@@ -214,39 +260,141 @@ const NominationForm = ({ navigation }) => {
         onChange={setGender}
         radioColor={colors.secondryColor}
       />
-      <InputField label={gender === 'male' ? 's/o' : 'd/o - w/o'} value={fatherOrHusband} onChangeText={setFatherOrHusband} placeholder={gender === 'male' ? 's/o' : 'd/o - w/o'} />
-      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Surname" />
-      <InputField label="JCIC / JID No." value={jid} onChangeText={setJid} placeholder="JCIC / JID No." />
-      <InputField label="Contact No." value={contact} onChangeText={setContact} placeholder="Contact No." keyboardType="phone-pad" />
-      <InputField label="Email (Optional)" value={email} onChangeText={setEmail} placeholder="Email (Optional)" keyboardType="email-address" />
+      <InputField 
+        label={gender === 'male' ? 'S/O' : 'D/O - W/O'} 
+        value={fatherOrHusband} 
+        onChangeText={setFatherOrHusband} 
+        placeholder="Enter the name of your father/husband"
+        error={errors.fatherOrHusband}
+      />
+      <InputField 
+        label="Surname" 
+        value={surname} 
+        onChangeText={setSurname} 
+        placeholder="Enter your surname"
+        error={errors.surname}
+      />
+      <InputField 
+        label="JCIC" 
+        value={jcic} 
+        onChangeText={setJcic} 
+        placeholder="Enter the 16-digit long Jamaat Identification Number"
+        error={errors.jcic}
+      />
+      <InputField 
+        label="Contact No." 
+        value={contact} 
+        onChangeText={setContact} 
+        placeholder="03XXXXXXXXX or 021XXXXXXX" 
+        keyboardType="phone-pad"
+        error={errors.contact}
+      />
+      <InputField 
+        label="Email (Optional)" 
+        value={email} 
+        onChangeText={setEmail} 
+        placeholder="Email (Optional)" 
+        keyboardType="email-address"
+        error={errors.email}
+      />
       <Text style={styles.label}>Office Applying For</Text>
-      {officeOptions.map(opt => (
-        <View key={opt} style={{marginBottom: 4}}>
-          <RadioGroup
-            options={[{label: <Text style={{color: colors.secondryColor}}>{opt}</Text>, value: opt}]}
-            value={office}
-            onChange={setOffice}
-            radioColor={colors.secondryColor}
-          />
-        </View>
-      ))}
-      <InputField label="Date/Year of Membership with Jamaat" value={membershipDate} onChangeText={setMembershipDate} placeholder="Date/Year of Membership" />
-      <InputField label="Date/Year of Birth" value={dob} onChangeText={setDob} placeholder="Date/Year of Birth" />
+      <DropDownMenu 
+        options={officeOptions} 
+        selectedValue={office} 
+        onValueChange={setOffice}
+        error={errors.office}
+      />
+      <InputField 
+        label="Date-Year of Membership with Jamaat" 
+        value={membershipDate} 
+        onChangeText={setMembershipDate} 
+        placeholder="DD-YYYY"
+        error={errors.membershipDate}
+      />
+      <InputField 
+        label="Date/Year of Birth" 
+        value={dob} 
+        onChangeText={setDob} 
+        placeholder="DD-YYYY"
+        error={errors.dob}
+      />
 
       {/* Section 2: Proposer & Seconder Details */}
       <Text style={styles.section}>Section 2: Proposer & Seconder Details</Text>
-      <InputField label="Proposed By - Name" value={proposerName} onChangeText={setProposerName} placeholder="Name" />
-      <InputField label="Surname" value={proposerSurname} onChangeText={setProposerSurname} placeholder="Surname" />
-      <InputField label="JCIC/JID No." value={proposerJid} onChangeText={setProposerJid} placeholder="JCIC/JID No." />
-      <InputField label="Contact No." value={proposerContact} onChangeText={setProposerContact} placeholder="Contact No." keyboardType="phone-pad" />
-      <InputField label="Email (Optional)" value={proposerEmail} onChangeText={setProposerEmail} placeholder="Email (Optional)" keyboardType="email-address" />
-      <InputField label="Signature" value={proposerSignature} onChangeText={setProposerSignature} placeholder="Signature" />
-      <InputField label="Seconded By - Name" value={seconderName} onChangeText={setSeconderName} placeholder="Name" />
-      <InputField label="Surname" value={seconderSurname} onChangeText={setSeconderSurname} placeholder="Surname" />
-      <InputField label="JCIC/JID No." value={seconderJid} onChangeText={setSeconderJid} placeholder="JCIC/JID No." />
-      <InputField label="Contact No." value={seconderContact} onChangeText={setSeconderContact} placeholder="Contact No." keyboardType="phone-pad" />
-      <InputField label="Email (Optional)" value={seconderEmail} onChangeText={setSeconderEmail} placeholder="Email (Optional)" keyboardType="email-address" />
-      <InputField label="Signature" value={seconderSignature} onChangeText={setSeconderSignature} placeholder="Signature" />
+      <InputField 
+        label="Proposed By - Name" 
+        value={proposerName} 
+        onChangeText={setProposerName} 
+        placeholder="Name as on the Jamaat ID Card"
+        error={errors.proposerName}
+      />
+      <InputField 
+        label="Surname" 
+        value={proposerSurname} 
+        onChangeText={setProposerSurname} 
+        placeholder="Surname"
+        error={errors.proposerSurname}
+      />
+      <InputField 
+        label="JCIC/JID No." 
+        value={proposerJcic} 
+        onChangeText={setProposerJcic} 
+        placeholder="Enter the 16-digit long Jamaat Identification Number"
+        error={errors.proposerJcic}
+      />
+      <InputField 
+        label="Contact No." 
+        value={proposerContact} 
+        onChangeText={setProposerContact} 
+        placeholder="03XXXXXXXXX or 021XXXXXXX" 
+        keyboardType="phone-pad"
+        error={errors.proposerContact}
+      />
+      <InputField 
+        label="Email (Optional)" 
+        value={proposerEmail} 
+        onChangeText={setProposerEmail} 
+        placeholder="Email (Optional)" 
+        keyboardType="email-address"
+        error={errors.proposerEmail}
+      />
+      <InputField 
+        label="Seconded By - Name" 
+        value={seconderName} 
+        onChangeText={setSeconderName} 
+        placeholder="Name as on the Jamaat ID Card"
+        error={errors.seconderName}
+      />
+      <InputField 
+        label="Surname" 
+        value={seconderSurname} 
+        onChangeText={setSeconderSurname} 
+        placeholder="Surname"
+        error={errors.seconderSurname}
+      />
+      <InputField 
+        label="JCIC/JID No." 
+        value={seconderJcic} 
+        onChangeText={setSeconderJcic} 
+        placeholder="Enter the 16-digit long Jamaat Identification Number"
+        error={errors.seconderJcic}
+      />
+      <InputField 
+        label="Contact No." 
+        value={seconderContact} 
+        onChangeText={setSeconderContact} 
+        placeholder="03XXXXXXXXX or 021XXXXXXX" 
+        keyboardType="phone-pad"
+        error={errors.seconderContact}
+      />
+      <InputField 
+        label="Email (Optional)" 
+        value={seconderEmail} 
+        onChangeText={setSeconderEmail} 
+        placeholder="Email (Optional)" 
+        keyboardType="email-address"
+        error={errors.seconderEmail}
+      />
 
       {/* Section 3: Candidate's Consent & Declaration */}
       <Text style={styles.section}>Section 3: Candidate's Consent & Declaration</Text>
@@ -262,9 +410,13 @@ const NominationForm = ({ navigation }) => {
         onChange={setIsFiler}
         radioColor={colors.secondryColor}
       />
-      <InputField label="My name on the ballot paper should appear as" value={ballotName} onChangeText={setBallotName} placeholder="Ballot Name" />
-      <InputField label="Signature of Candidate" value={candidateSignature} onChangeText={setCandidateSignature} placeholder="Signature of Candidate" />
-      <InputField label="Date" value={candidateDate} onChangeText={setCandidateDate} placeholder="Date" />
+      <InputField 
+        label="My name on the ballot paper should appear as" 
+        value={ballotName} 
+        onChangeText={setBallotName} 
+        placeholder="Ballot Name"
+        error={errors.ballotName}
+      />
 
       {/* Section 4: Terms & Conditions */}
       <Text style={styles.section}>Section 4: Terms & Conditions</Text>

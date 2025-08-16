@@ -472,6 +472,8 @@ export const updateFamilyParticipationStatus = async (jcic, status, adminNotes =
 // Submit hall booking form data to Firebase
 export const submitHallBookingForm = async (jcic, formData) => {
   try {
+    validateHallBookingForm(formData);
+
     const submissionId = `${jcic}_${Date.now()}`;
     const submissionData = {
       ...formData,
@@ -480,11 +482,13 @@ export const submitHallBookingForm = async (jcic, formData) => {
       status: 'pending',
       submissionId,
     };
+
     const formRef = ref(db, `HallBookingForm/${jcic}`);
     await set(formRef, submissionData);
+
     return { success: true, message: 'Hall booking submitted successfully', submissionId, data: submissionData };
   } catch (error) {
-    return { success: false, error: 'Failed to submit hall booking form', details: error.message };
+    return { success: false, error: error.message || 'Failed to submit hall booking form', details: error.message };
   }
 };
 
@@ -757,6 +761,66 @@ export const updateEducationDonationBoxStatus = async (jcic, status, adminNotes 
   }
 };
 
+// Submit Takhti Request form data to Firebase
+export const submitTakhtiRequestForm = async (jcic, formData) => {
+  try {
+    // Create a unique submission ID with timestamp
+    const submissionId = `${jcic}_${Date.now()}`;
+
+    // Prepare the form data with metadata
+    const submissionData = {
+      ...formData,
+      submittedAt: new Date().toISOString(),
+      submittedBy: jcic,
+      status: 'pending', // pending, approved, rejected
+      submissionId: submissionId,
+    };
+
+    // Store in Firebase under TakhtiRequestForm collection
+    const takhtiRequestRef = ref(db, `TakhtiRequestForm/${jcic}`);
+    await set(takhtiRequestRef, submissionData);
+
+    return {
+      success: true,
+      message: 'Takhti Request form submitted successfully',
+      submissionId: submissionId,
+      data: submissionData
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to submit Takhti Request form',
+      details: error.message
+    };
+  }
+};
+
+// Get Takhti Request form data for a specific member
+export const getTakhtiRequestForm = async (jcic) => {
+  try {
+    const takhtiRequestRef = ref(db, `TakhtiRequestForm/${jcic}`);
+    const snapshot = await get(takhtiRequestRef);
+
+    if (snapshot.exists()) {
+      return {
+        success: true,
+        data: snapshot.val()
+      };
+    } else {
+      return {
+        success: false,
+        error: 'No Takhti Request form found for this member'
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to fetch Takhti Request form',
+      details: error.message
+    };
+  }
+};
+
 // Generic form submission function for other forms
 export const submitForm = async (formType, jcic, formData) => {
   try {
@@ -814,4 +878,104 @@ export const getForm = async (formType, jcic) => {
       details: error.message
     };
   }
-}; 
+};
+
+export const validateHallBookingForm = (formData) => {
+  const {
+    fullName,
+    fatherName,
+    surname,
+    jcic,
+    cnic,
+    address,
+    purpose,
+    hall,
+    bookingDate,
+    timingFrom,
+    timingTo,
+  } = formData;
+
+  if (!fullName || !fatherName || !surname || !jcic || !cnic || !address) {
+    throw new Error('All applicant details are required.');
+  }
+
+  if (!purpose) {
+    throw new Error('Purpose of booking is required.');
+  }
+
+  if (!hall) {
+    throw new Error('Hall selection is required.');
+  }
+
+  if (!bookingDate || !timingFrom || !timingTo) {
+    throw new Error('Booking date and timings are required.');
+  }
+
+  const fromTime = new Date(`1970-01-01T${timingFrom}`);
+  const toTime = new Date(`1970-01-01T${timingTo}`);
+  if (toTime <= fromTime) {
+    throw new Error('Timing To must be later than Timing From.');
+  }
+};
+
+// Submit WadiEZainab form data to Firebase
+export const submitWadiEZainabForm = async (jcic, formData) => {
+  try {
+    const formRef = ref(db, `wadiEZainabForms/${jcic}`);
+    await set(formRef, formData);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Submit Grave Repair form data to Firebase
+export const submitGraveRepairForm = async (jcic, formData) => {
+  try {
+    const formRef = ref(db, `graveRepairForms/${jcic}`);
+    await set(formRef, formData);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Submit DuplicateCard form data to Firebase
+export const submitDuplicateCardForm = async (jcic, formData) => {
+  try {
+    // Validate form data (if validation function exists)
+    if (typeof validateDuplicateCardForm === 'function') {
+      validateDuplicateCardForm(formData);
+    }
+
+    // Create a unique submission ID with timestamp
+    const submissionId = `${jcic}_${Date.now()}`;
+
+    // Prepare the form data with metadata
+    const submissionData = {
+      ...formData,
+      submittedAt: new Date().toISOString(),
+      submittedBy: jcic,
+      status: 'pending', // pending, approved, rejected
+      submissionId: submissionId,
+    };
+
+    // Store in Firebase under duplicateCardForms collection
+    const duplicateCardRef = ref(db, `duplicateCardForms/${jcic}`);
+    await set(duplicateCardRef, submissionData);
+
+    return {
+      success: true,
+      message: 'Duplicate Card form submitted successfully',
+      submissionId: submissionId,
+      data: submissionData
+    };
+  } catch (error) {
+    console.error('Error submitting Duplicate Card form:', error);
+    return {
+      success: false,
+      error: 'Failed to submit Duplicate Card form',
+      details: error.message
+    };
+  }
+};

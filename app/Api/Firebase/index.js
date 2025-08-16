@@ -53,7 +53,14 @@ export {
   getAllDeathInfoForms,
   updateDeathInfoStatus,
   submitForm,
-  getForm
+  getForm,
+  submitTakhtiRequestForm,
+  getTakhtiRequestForm,
+  getAllTakhtiRequestForms,
+  updateTakhtiRequestStatus,
+  submitWadiEZainabForm,
+  submitGraveRepairForm,
+  submitDuplicateCardForm 
 } from './FormAPI';
 
 // Cloudinary Service (for backward compatibility)

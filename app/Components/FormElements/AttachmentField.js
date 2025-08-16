@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { colors } from '../../Config/AppConfigData';
 
-const AttachmentField = ({ label, file, onPick }) => {
+const AttachmentField = ({ label, file, onPick, error }) => {
   const handlePick = async () => {
     try {
       const res = await DocumentPicker.pickSingle({
@@ -25,6 +24,7 @@ const AttachmentField = ({ label, file, onPick }) => {
         <Text style={styles.buttonText}>{file ? 'Change File' : 'Upload File'}</Text>
       </TouchableOpacity>
       {file && <Text style={styles.fileName}>{file.name}</Text>}
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
@@ -54,6 +54,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     color: '#555',
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: 'red',
   },
 });
 

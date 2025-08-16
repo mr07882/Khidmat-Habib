@@ -6,6 +6,7 @@ const Checkbox = ({
   options = [],
   value = [],
   onChange,
+  error,
   multiple = false,
   style = {},
   checkboxStyle = {},
@@ -90,6 +91,7 @@ const Checkbox = ({
           </TouchableOpacity>
         );
       })}
+      {error && <Text style={{ color: 'red', fontSize: 12 }}>{error}</Text>}
     </View>
   );
 };
@@ -111,4 +113,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Checkbox; 
+export default Checkbox;

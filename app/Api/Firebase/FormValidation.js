@@ -60,6 +60,17 @@ export const validateDate = (date) => {
   return { isValid: true };
 };
 
+// Validate dropdown selection
+export const validateDropDownSelection = (selectedValue) => {
+  if (!selectedValue || selectedValue === "") {
+    return {
+      isValid: false,
+      error: "Please select a valid option from the dropdown."
+    };
+  }
+  return { isValid: true };
+};
+
 // Validate nomination form data
 export const validateNominationForm = (formData) => {
   const errors = [];
@@ -70,22 +81,21 @@ export const validateNominationForm = (formData) => {
     { field: 'fullName', name: 'Full Name' },
     { field: 'fatherOrHusband', name: 'Father/Husband Name' },
     { field: 'surname', name: 'Surname' },
-    { field: 'jid', name: 'JCIC/JID Number' },
+    { field: 'jcic', name: 'JCIC' },
     { field: 'contact', name: 'Contact Number' },
     { field: 'office', name: 'Office Applying For' },
     { field: 'membershipDate', name: 'Membership Date' },
     { field: 'dob', name: 'Date of Birth' },
     { field: 'proposerName', name: 'Proposer Name' },
     { field: 'proposerSurname', name: 'Proposer Surname' },
-    { field: 'proposerJid', name: 'Proposer JCIC/JID' },
+    { field: 'proposerJcic', name: 'Proposer JCIC' },
     { field: 'proposerContact', name: 'Proposer Contact' },
     { field: 'seconderName', name: 'Seconder Name' },
     { field: 'seconderSurname', name: 'Seconder Surname' },
-    { field: 'seconderJid', name: 'Seconder JCIC/JID' },
+    { field: 'seconderJcic', name: 'Seconder JCIC' },
     { field: 'seconderContact', name: 'Seconder Contact' },
     { field: 'ballotName', name: 'Ballot Name' },
-    { field: 'candidateSignature', name: 'Candidate Signature' },
-    { field: 'candidateDate', name: 'Candidate Date' },
+    { field: 'photo', name: 'Photo Upload' },
   ];
 
   requiredFields.forEach(({ field, name }) => {
@@ -96,42 +106,22 @@ export const validateNominationForm = (formData) => {
   });
 
   // JCIC validation
-  const jcicValidation = validateJCIC(formData.jid);
-  if (!jcicValidation.isValid) {
-    errors.push(jcicValidation.error);
-  }
-
-  // Proposer JCIC validation
-  const proposerJcicValidation = validateJCIC(formData.proposerJid);
-  if (!proposerJcicValidation.isValid) {
-    errors.push(`Proposer ${proposerJcicValidation.error}`);
-  }
-
-  // Seconder JCIC validation
-  const seconderJcicValidation = validateJCIC(formData.seconderJid);
-  if (!seconderJcicValidation.isValid) {
-    errors.push(`Seconder ${seconderJcicValidation.error}`);
-  }
+  ['jcic', 'proposerJcic', 'seconderJcic'].forEach((field) => {
+    const jcicValidation = validateJCIC(formData[field]);
+    if (!jcicValidation.isValid) {
+      errors.push(jcicValidation.error);
+    }
+  });
 
   // Phone number validation
-  const phoneValidation = validatePhone(formData.contact);
-  if (!phoneValidation.isValid) {
-    errors.push(phoneValidation.error);
-  }
+  ['contact', 'proposerContact', 'seconderContact'].forEach((field) => {
+    const phoneValidation = validatePhone(formData[field]);
+    if (!phoneValidation.isValid) {
+      errors.push(phoneValidation.error);
+    }
+  });
 
-  // Proposer phone validation
-  const proposerPhoneValidation = validatePhone(formData.proposerContact);
-  if (!proposerPhoneValidation.isValid) {
-    errors.push(`Proposer ${proposerPhoneValidation.error}`);
-  }
-
-  // Seconder phone validation
-  const seconderPhoneValidation = validatePhone(formData.seconderContact);
-  if (!seconderPhoneValidation.isValid) {
-    errors.push(`Seconder ${seconderPhoneValidation.error}`);
-  }
-
-  // Email validation (optional fields)
+  // Email validation (optional)
   if (formData.email) {
     const emailValidation = validateEmail(formData.email);
     if (!emailValidation.isValid) {
@@ -139,55 +129,18 @@ export const validateNominationForm = (formData) => {
     }
   }
 
-  if (formData.proposerEmail) {
-    const proposerEmailValidation = validateEmail(formData.proposerEmail);
-    if (!proposerEmailValidation.isValid) {
-      errors.push(`Proposer ${proposerEmailValidation.error}`);
-    }
+  // Dropdown validation for office
+  const officeValidation = validateDropDownSelection(formData.office);
+  if (!officeValidation.isValid) {
+    errors.push(officeValidation.error);
   }
 
-  if (formData.seconderEmail) {
-    const seconderEmailValidation = validateEmail(formData.seconderEmail);
-    if (!seconderEmailValidation.isValid) {
-      errors.push(`Seconder ${seconderEmailValidation.error}`);
-    }
-  }
-
-  // Check if same person is proposer and seconder
-  if (formData.proposerJid === formData.seconderJid) {
-    errors.push('Proposer and Seconder cannot be the same person');
-  }
-
-  // Check if candidate is proposer or seconder
-  if (formData.jid === formData.proposerJid) {
-    errors.push('Candidate cannot be their own proposer');
-  }
-
-  if (formData.jid === formData.seconderJid) {
-    errors.push('Candidate cannot be their own seconder');
-  }
-
-  // Warnings for optional fields
-  if (!formData.email) {
-    warnings.push('Email address is recommended for communication');
-  }
-
-  if (!formData.proposerEmail) {
-    warnings.push('Proposer email address is recommended');
-  }
-
-  if (!formData.seconderEmail) {
-    warnings.push('Seconder email address is recommended');
-  }
-
-  if (!formData.photo) {
-    warnings.push('Profile photo is recommended');
-  }
+  // Add more specific warnings if needed
 
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   };
 };
 
@@ -200,13 +153,18 @@ export const validateFamilyParticipationForm = (formData) => {
   const requiredFields = [
     { field: 'name', name: 'Your Name' },
     { field: 'relation', name: 'Family Member Name' },
+    { field: 'relationship', name: 'Relationship with Family Member' },
+    { field: 'jcic', name: 'JCIC' },
     { field: 'email', name: 'Email' },
     { field: 'cellNo', name: 'Cell Number' },
+    { field: 'ptclNo', name: 'PTCL Number' },
     { field: 'amount', name: 'Amount Donated' },
     { field: 'frequency', name: 'Payment Frequency' },
     { field: 'mode', name: 'Payment Method' },
+    { field: 'chequeName', name: 'Name as on Cheque' },
     { field: 'signature', name: 'Signature' },
     { field: 'address', name: 'Address' },
+    { field: 'transactionSlip', name: 'Transaction Slip' },
   ];
 
   requiredFields.forEach(({ field, name }) => {
@@ -861,4 +819,31 @@ export const validateDeathInfoForm = (formData) => {
     errors,
     warnings,
   };
-}; 
+};
+
+// Validate Takhti Request form data
+export const validateTakhtiRequestForm = (formData) => {
+  const errors = [];
+
+  // Validate required fields
+  if (!formData.applicantName || formData.applicantName.trim() === '') {
+    errors.push('Applicant Name is required');
+  }
+  if (!formData.deceasedName || formData.deceasedName.trim() === '') {
+    errors.push('Deceased Name is required');
+  }
+  if (!formData.graveyard || formData.graveyard.trim() === '') {
+    errors.push('Graveyard selection is required');
+  }
+
+  // Validate JCIC
+  const jcicValidation = validateJCIC(formData.jcic);
+  if (!jcicValidation.isValid) {
+    errors.push(jcicValidation.error);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+};

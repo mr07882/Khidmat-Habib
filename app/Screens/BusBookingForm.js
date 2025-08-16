@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from 're
 import InputField from '../Components/FormElements/InputField';
 import SubmitButton from '../Components/FormElements/SubmitButton';
 import AttachmentField from '../Components/FormElements/AttachmentField';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors } from '../Config/AppConfigData';
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,15 +30,20 @@ const BusBookingForm = ({ navigation }) => {
   const [timeOut, setTimeOut] = useState('');
   const [totalHours, setTotalHours] = useState('');
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePickerBooking, setShowTimePickerBooking] = useState(false);
+  const [showTimePickerOut, setShowTimePickerOut] = useState(false);
+
   // Attachments
   const [jcicFile, setJcicFile] = useState(null);
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
   const [userJCIC, setUserJCIC] = useState(null);
 
   const userId = useSelector(state => state.reducer.userId);
-  
+
   useEffect(() => {
     const getUserJCIC = async () => {
       try {
@@ -50,15 +56,52 @@ const BusBookingForm = ({ navigation }) => {
     getUserJCIC();
   }, [userId]);
 
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDateOfBooking(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleBookingTimeChange = (event, selectedTime) => {
+    setShowTimePickerBooking(false);
+    if (selectedTime) {
+      setBookingTime(selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }
+  };
+
+  const handleTimeOutChange = (event, selectedTime) => {
+    setShowTimePickerOut(false);
+    if (selectedTime) {
+      setTimeOut(selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }
+  };
+
+  const validateForm = () => {
+    const fieldErrors = {};
+
+    if (!fullName) fieldErrors.fullName = 'Full Name is required.';
+    if (!address) fieldErrors.address = 'Address is required.';
+    if (!membershipNumber) fieldErrors.membershipNumber = 'JCIC is required.';
+    if (!cellNo) fieldErrors.cellNo = 'Cell Number is required.';
+    if (!dateOfBooking) fieldErrors.dateOfBooking = 'Please select a date.';
+    if (!pickUpPoint) fieldErrors.pickUpPoint = 'Pick Up Point is required.';
+    if (!purpose) fieldErrors.purpose = 'Purpose is required.';
+    if (!bookingTime) fieldErrors.bookingTime = 'Booking Time is required.';
+    if (!timeOut) fieldErrors.timeOut = 'Time Out is required.';
+    if (!jcicFile) fieldErrors.jcicFile = 'JCIC/CNIC copy is required.';
+
+    setErrors(fieldErrors);
+
+    return Object.keys(fieldErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!userJCIC) {
-      Alert.alert('Error', 'User not authenticated. Please login again.');
+    if (!validateForm()) {
       return;
     }
-
-    // Check if required attachment is selected
-    if (!jcicFile) {
-      Alert.alert('Validation Error', 'JCIC/CNIC copy is required');
+    if (!userJCIC) {
+      Alert.alert('Error', 'User not authenticated. Please login again.');
       return;
     }
 
@@ -78,13 +121,6 @@ const BusBookingForm = ({ navigation }) => {
     };
 
     const sanitized = sanitizeFormData(formData);
-
-    // Validate form data (excluding file upload validation)
-    const validation = validateBusBookingForm(sanitized);
-    if (!validation.isValid) {
-      Alert.alert('Validation Error', validation.errors.join('\n'));
-      return;
-    }
 
     // Proceed with form submission
     submitForm(sanitized);
@@ -148,20 +184,23 @@ const BusBookingForm = ({ navigation }) => {
         label="Name" 
         value={fullName} 
         onChangeText={setFullName} 
-        placeholder="Applicant's Full Name" 
+        placeholder="Enter your full name" 
+        error={errors.fullName}
       />
       <InputField 
         label="Address" 
         value={address} 
         onChangeText={setAddress} 
-        placeholder="Applicant's Complete Address" 
+        placeholder="Enter your complete address" 
         multiline={true}
+        error={errors.address}
       />
       <InputField 
-        label="Membership Number" 
+        label="JCIC" 
         value={membershipNumber} 
         onChangeText={setMembershipNumber} 
         placeholder="XXXX XXXX XXXX XXXX" 
+        error={errors.membershipNumber}
       />
       <InputField 
         label="Cell No" 
@@ -169,48 +208,70 @@ const BusBookingForm = ({ navigation }) => {
         onChangeText={setCellNo} 
         placeholder="03XXXXXXXXX" 
         keyboardType="phone-pad"
+        error={errors.cellNo}
       />
       <InputField 
         label="Res No" 
         value={resNo} 
         onChangeText={setResNo} 
-        placeholder="Residence Phone Number" 
+        placeholder="021XXXXXXX" 
         keyboardType="phone-pad"
       />
 
       {/* Booking Details */}
       <Text style={styles.section}>Booking Details</Text>
-      <InputField 
-        label="Date of Booking" 
-        value={dateOfBooking} 
-        onChangeText={setDateOfBooking} 
-        placeholder="DD-MM-YYYY" 
-      />
+      <Text style={styles.label}>Date of Booking</Text>
+      {errors.dateOfBooking && <Text style={styles.errorText}>{errors.dateOfBooking}</Text>}
+      <Text onPress={() => setShowDatePicker(true)} style={styles.datePicker}>{dateOfBooking || 'Select Date'}</Text>
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date()}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
+
       <InputField 
         label="Pick Up Point" 
         value={pickUpPoint} 
         onChangeText={setPickUpPoint} 
         placeholder="Pick up location" 
+        error={errors.pickUpPoint}
       />
       <InputField 
         label="Purpose of booking the vehicle" 
         value={purpose} 
         onChangeText={setPurpose} 
-        placeholder="Purpose of booking" 
+        placeholder="Briefly describe the purpose for booking the vehicle" 
         multiline={true}
+        error={errors.purpose}
       />
-      <InputField 
-        label="Booking Time" 
-        value={bookingTime} 
-        onChangeText={setBookingTime} 
-        placeholder="e.g., 6:00 PM" 
-      />
-      <InputField 
-        label="Time Out" 
-        value={timeOut} 
-        onChangeText={setTimeOut} 
-        placeholder="e.g., 10:00 PM" 
-      />
+
+      <Text style={styles.label}>Booking Time</Text>
+      <Text onPress={() => setShowTimePickerBooking(true)} style={styles.datePicker}>{bookingTime || 'Select Time'}</Text>
+      {showTimePickerBooking && (
+        <DateTimePicker
+          value={new Date()}
+          mode="time"
+          display="default"
+          onChange={handleBookingTimeChange}
+        />
+      )}
+      {errors.bookingTime && <Text style={styles.errorText}>{errors.bookingTime}</Text>}
+
+      <Text style={styles.label}>Time Out</Text>
+      <Text onPress={() => setShowTimePickerOut(true)} style={styles.datePicker}>{timeOut || 'Select Time'}</Text>
+      {showTimePickerOut && (
+        <DateTimePicker
+          value={new Date()}
+          mode="time"
+          display="default"
+          onChange={handleTimeOutChange}
+        />
+      )}
+      {errors.timeOut && <Text style={styles.errorText}>{errors.timeOut}</Text>}
+
       <InputField 
         label="Total Hours" 
         value={totalHours} 
@@ -225,6 +286,7 @@ const BusBookingForm = ({ navigation }) => {
         label="Copy of JCIC/CNIC"
         file={jcicFile}
         onPick={setJcicFile}
+        error={errors.jcicFile}
       />
 
       {/* Undertaking Section */}
@@ -317,6 +379,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: colors.secondryColor,
   },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#333',
+  },
+  datePicker: {
+    borderWidth: 1,
+    borderColor: colors.secondryColor,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    textAlign: 'center',
+    color: colors.secondryColor,
+  },
   undertakingBox: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
@@ -337,6 +414,11 @@ const styles = StyleSheet.create({
     color: '#444',
     lineHeight: 20,
   },
+  errorText: {
+    fontSize: 12,
+    color: 'red',
+    marginBottom: 8,
+  },
 });
 
-export default BusBookingForm; 
+export default BusBookingForm;

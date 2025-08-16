@@ -25,6 +25,7 @@ const CandidateRetirement = ({ navigation }) => {
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userJCIC, setUserJCIC] = useState(null);
+  const [errors, setErrors] = useState({});
   
   // Get user JCIC from Redux or AsyncStorage
   const userId = useSelector(state => state.reducer.userId);
@@ -71,13 +72,26 @@ const CandidateRetirement = ({ navigation }) => {
     const validation = validateCandidateRetirementForm(sanitizedData);
     
     if (!validation.isValid) {
-      Alert.alert(
-        'Validation Error',
-        `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
-        [{ text: 'OK' }]
-      );
+      const fieldErrors = {};
+      validation.errors.forEach((error) => {
+        Object.entries({
+          candidateName: 'Candidate Name',
+          fatherOrHusband: 'Father/Husband Name',
+          post: 'Post',
+          serialNumber: 'Serial Number',
+          jcic: 'JCIC',
+          signature: 'Signature',
+          date: 'Date',
+        }).forEach(([key, label]) => {
+          if (error.startsWith(label)) {
+            fieldErrors[key] = error;
+          }
+        });
+      });
+      setErrors(fieldErrors);
       return;
     }
+    setErrors({});
     
     // Submit form
     submitForm(sanitizedData);
@@ -133,19 +147,22 @@ const CandidateRetirement = ({ navigation }) => {
         label="Candidate Name"
         value={candidateName}
         onChangeText={setCandidateName}
-        placeholder="Enter your name"
+        placeholder="Enter your name as on the Jamaat ID Card"
+        error={errors.candidateName}
       />
       <InputField
         label="S/o (Father/Husband Name)"
         value={fatherOrHusband}
         onChangeText={setFatherOrHusband}
         placeholder="Enter father/husband name"
+        error={errors.fatherOrHusband}
       />
       <InputField
         label="Post"
         value={post}
         onChangeText={setPost}
         placeholder="Enter post name"
+        error={errors.post}
       />
       <InputField
         label="Serial Number"
@@ -153,12 +170,14 @@ const CandidateRetirement = ({ navigation }) => {
         onChangeText={setSerialNumber}
         placeholder="Enter serial number"
         keyboardType="numeric"
+        error={errors.serialNumber}
       />
       <InputField
         label="JCIC / JID No."
         value={jcic}
         onChangeText={setJcic}
-        placeholder="Enter JCIC/JID number"
+        placeholder="Enter your 16-digit JCIC number"
+        error={errors.jcic}
       />
 
       {/* Declaration Section */}
@@ -171,6 +190,7 @@ const CandidateRetirement = ({ navigation }) => {
         value={signature}
         onChangeText={setSignature}
         placeholder="Signature"
+        error={errors.signature}
       />
       
       {isSubmitting && (

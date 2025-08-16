@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import SubmitButton from '../Components/FormElements/SubmitButton';
 import AttachmentField from '../Components/FormElements/AttachmentField';
+import DropDownMenu from '../Components/FormElements/DropDownMenu';
 import { colors } from '../Config/AppConfigData';
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +14,7 @@ import {
   sanitizeFormData,
   uploadDocumentToCloudinary
 } from '../Api/Firebase';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const purposeOptions = [
   { label: 'Majlis', value: 'majlis' },
@@ -42,7 +44,39 @@ const serveOptions = [
   { label: 'Other', value: 'other' },
 ];
 
+const scrollToError = (errors, scrollRef) => {
+  const errorKeys = Object.keys(errors);
+  if (errorKeys.length > 0) {
+    const firstErrorKey = errorKeys[0];
+    const errorPositions = {
+      fullName: 0,
+      fatherName: 1,
+      surname: 2,
+      organization: 3,
+      designation: 4,
+      jcic: 5,
+      cnic: 6,
+      address: 7,
+      purpose: 8,
+      hall: 9,
+      bookingDate: 10,
+      timingFrom: 11,
+      timingTo: 12,
+      serveItem: 13,
+      jcicFile: 14,
+      requestLetter: 15,
+      paymentReceipt: 16,
+    };
+    const position = errorPositions[firstErrorKey];
+    if (position !== undefined) {
+      scrollRef.current.scrollTo({ y: position * 100, animated: true });
+    }
+  }
+};
+
 const HallBookingForm = ({ navigation }) => {
+  const scrollRef = useRef(null);
+
   // Section 1: Applicant Details
   const [fullName, setFullName] = useState('');
   const [fatherName, setFatherName] = useState('');
@@ -79,6 +113,12 @@ const HallBookingForm = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userJCIC, setUserJCIC] = useState(null);
 
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePickerFrom, setShowTimePickerFrom] = useState(false);
+  const [showTimePickerTo, setShowTimePickerTo] = useState(false);
+
+  const [errors, setErrors] = useState({});
+
   const userId = useSelector(state => state.reducer.userId);
   useEffect(() => {
     const getUserJCIC = async () => {
@@ -90,7 +130,86 @@ const HallBookingForm = ({ navigation }) => {
     getUserJCIC();
   }, [userId]);
 
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setBookingDate(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const handleTimeFromChange = (event, selectedTime) => {
+    setShowTimePickerFrom(false);
+    if (selectedTime) {
+      setTimingFrom(selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }
+  };
+
+  const handleTimeToChange = (event, selectedTime) => {
+    setShowTimePickerTo(false);
+    if (selectedTime) {
+      const selectedTimeString = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setTimingTo(selectedTimeString);
+      if (timingFrom) {
+        const from = new Date(`1970-01-01T${timingFrom}:00`);
+        const to = new Date(`1970-01-01T${selectedTimeString}:00`);
+        const diff = (to - from) / (1000 * 60 * 60);
+        setTotalHours(diff > 0 ? diff : 0);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (timingFrom && timingTo) {
+      const sanitizedTimingFrom = timingFrom.replace(/[^\d:\sAPM]/g, '');
+      const sanitizedTimingTo = timingTo.replace(/[^\d:\sAPM]/g, '');
+      const from = new Date(`1970-01-01T${sanitizedTimingFrom}:00`);
+      const to = new Date(`1970-01-01T${sanitizedTimingTo}:00`);
+      const diff = (to - from) / (1000 * 60 * 60);
+      console.log('Sanitized Timing From:', sanitizedTimingFrom);
+      console.log('Sanitized Timing To:', sanitizedTimingTo);
+      console.log('Calculated Difference (hours):', diff);
+      setTotalHours(diff > 0 ? diff : 0);
+    }
+  }, [timingFrom, timingTo]);
+
+  const validateForm = () => {
+    const fieldErrors = {};
+
+    if (!fullName) fieldErrors.fullName = 'Full Name is required.';
+    if (!fatherName) fieldErrors.fatherName = 'Father Name is required.';
+    if (!surname) fieldErrors.surname = 'Surname is required.';
+    if (!jcic) fieldErrors.jcic = 'JCIC is required.';
+    if (!cnic) fieldErrors.cnic = 'CNIC is required.';
+    if (!address) fieldErrors.address = 'Address is required.';
+
+    if (!organization) fieldErrors.organization = 'Organization Name is required.';
+    if (!designation) fieldErrors.designation = 'Designation is required.';
+
+    if (!purpose) fieldErrors.purpose = 'Purpose is required.';
+
+    if (!serveItem) fieldErrors.serveItem = 'Please select what will be served.';
+    if (serveItem === 'other' && !otherServeDetail) fieldErrors.otherServeDetail = 'Please specify what will be served.';
+
+    if (!hall) fieldErrors.hall = 'Hall selection is required.';
+    if (hall === 'other' && !otherHallDetail) fieldErrors.otherHallDetail = 'Please specify the hall.';
+    if (hall === 'fatimiyah' && !fatimiyahDetail) fieldErrors.fatimiyahDetail = 'Please specify Fatimiyah details.';
+
+    if (!bookingDate) fieldErrors.bookingDate = 'Booking Date is required.';
+    if (!timingFrom) fieldErrors.timingFrom = 'Timing From is required.';
+    if (!timingTo) fieldErrors.timingTo = 'Timing To is required.';
+
+    if (!jcicFile) fieldErrors.jcicFile = 'JCIC/CNIC scan is required.';
+
+    setErrors(fieldErrors);
+
+    return Object.keys(fieldErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      scrollToError(errors, scrollRef);
+      return;
+    }
     if (!userJCIC) {
       Alert.alert('Error', 'User not authenticated. Please login again.');
       return;
@@ -110,14 +229,6 @@ const HallBookingForm = ({ navigation }) => {
     // Check if all required attachments are selected
     if (!jcicFile) {
       Alert.alert('Validation Error', 'JCIC/CNIC scan is required');
-      return;
-    }
-    if (!requestLetter) {
-      Alert.alert('Validation Error', 'Request letter is required');
-      return;
-    }
-    if (!paymentReceipt) {
-      Alert.alert('Validation Error', 'Payment receipt is required');
       return;
     }
 
@@ -208,7 +319,7 @@ const HallBookingForm = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
       <Text style={styles.title}>Hall Booking Form</Text>
       <Text style={styles.infoText}>
         This form is for requesting a hall booking for various Jamaat-related or personal events.
@@ -216,14 +327,63 @@ const HallBookingForm = ({ navigation }) => {
 
       {/* Section 1: Applicant Details */}
       <Text style={styles.section}>Section 1: Applicant Details</Text>
-      <InputField label="Full Name" value={fullName} onChangeText={setFullName} placeholder="Full Name" />
-      <InputField label="Father's Name" value={fatherName} onChangeText={setFatherName} placeholder="Father's Name" />
-      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Surname" />
-      <InputField label="Name of Organization" value={organization} onChangeText={setOrganization} placeholder="Organization Name" />
-      <InputField label="Designation (Authorized Person)" value={designation} onChangeText={setDesignation} placeholder="Designation" />
-      <InputField label="JCIC Number" value={jcic} onChangeText={setJcic} placeholder="JCIC Number" />
-      <InputField label="CNIC Number" value={cnic} onChangeText={setCnic} placeholder="CNIC Number" keyboardType="numeric" />
-      <InputField label="Full Address" value={address} onChangeText={setAddress} placeholder="House/Flat No, Floor, Area, City, Country" />
+      <InputField
+        label="Full Name"
+        value={fullName}
+        onChangeText={setFullName}
+        placeholder="Enter full name"
+        error={errors.fullName}
+      />
+      <InputField
+        label="Father's Name"
+        value={fatherName}
+        onChangeText={setFatherName}
+        placeholder="Enter your father's name"
+        error={errors.fatherName}
+      />
+      <InputField
+        label="Surname"
+        value={surname}
+        onChangeText={setSurname}
+        placeholder="Surname"
+        error={errors.surname}
+      />
+      <InputField
+        label="Name of Organization"
+        value={organization}
+        onChangeText={setOrganization}
+        placeholder="Organization Name"
+        error={errors.organization}
+      />
+      <InputField
+        label="Designation (Authorized Person)"
+        value={designation}
+        onChangeText={setDesignation}
+        placeholder="Enter your designation in the organization"
+        error={errors.designation}
+      />
+      <InputField
+        label="JCIC Number"
+        value={jcic}
+        onChangeText={setJcic}
+        placeholder="Enter your 16-digit JCIC number"
+        error={errors.jcic}
+      />
+      <InputField
+        label="CNIC Number"
+        value={cnic}
+        onChangeText={setCnic}
+        placeholder="XXXXX-XXXXXXX-X"
+        keyboardType="numeric"
+        error={errors.cnic}
+      />
+      <InputField
+        label="Full Address"
+        value={address}
+        onChangeText={setAddress}
+        placeholder="House/Flat No, Floor, Area, City, Country"
+        error={errors.address}
+      />
 
       {/* Section 2: Purpose */}
       <Text style={styles.section}>Section 2: Purpose of Booking</Text>
@@ -235,6 +395,7 @@ const HallBookingForm = ({ navigation }) => {
         value={purpose}
         onChange={setPurpose}
         radioColor={colors.secondryColor}
+        error={errors.purpose}
       />
       {purpose === 'other' && (
         <InputField
@@ -247,24 +408,20 @@ const HallBookingForm = ({ navigation }) => {
 
       {/* Section 3: Booking Details */}
       <Text style={styles.section}>Section 3: Booking Details</Text>
-      <RadioGroup
-        options={hallOptions.map(opt => ({
-          label: <Text style={{ color: colors.secondryColor }}>{opt.label}</Text>,
-          value: opt.value,
-        }))}
-        value={hall}
-        onChange={setHall}
-        radioColor={colors.secondryColor}
+      <DropDownMenu
+        label="Select Hall"
+        options={hallOptions}
+        selectedValue={hall}
+        onValueChange={setHall}
+        error={errors.hall}
       />
       {hall === 'fatimiyah' && (
-        <RadioGroup
-          options={fatimiyahOptions.map(opt => ({
-            label: <Text style={{ color: colors.secondryColor }}>{opt.label}</Text>,
-            value: opt.value,
-          }))}
-          value={fatimiyahDetail}
-          onChange={setFatimiyahDetail}
-          radioColor={colors.secondryColor}
+        <DropDownMenu
+          label="Select Fatimiyah Detail"
+          options={fatimiyahOptions}
+          selectedValue={fatimiyahDetail}
+          onValueChange={setFatimiyahDetail}
+          error={errors.fatimiyahDetail}
         />
       )}
       {hall === 'other' && (
@@ -273,14 +430,54 @@ const HallBookingForm = ({ navigation }) => {
           value={otherHallDetail}
           onChangeText={setOtherHallDetail}
           placeholder="Other hall"
+          error={errors.otherHallDetail}
         />
       )}
 
-      <InputField label="Booking Day" value={bookingDay} onChangeText={setBookingDay} placeholder="e.g., Friday" />
-      <InputField label="Booking Date" value={bookingDate} onChangeText={setBookingDate} placeholder="DD-MM-YYYY" />
-      <InputField label="Timing From" value={timingFrom} onChangeText={setTimingFrom} placeholder="e.g., 6:00 PM" />
-      <InputField label="Timing To" value={timingTo} onChangeText={setTimingTo} placeholder="e.g., 10:00 PM" />
-      <InputField label="Total Hours" value={totalHours} onChangeText={setTotalHours} placeholder="e.g., 4" keyboardType="numeric" />
+      <Text style={styles.label}>Booking Date</Text>
+      <Text onPress={() => setShowDatePicker(true)} style={styles.datePicker}>{bookingDate || 'Select Date'}</Text>
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date()}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
+      {errors.bookingDate && <Text style={styles.errorText}>{errors.bookingDate}</Text>}
+
+      <Text style={styles.label}>Timing From</Text>
+      <Text onPress={() => setShowTimePickerFrom(true)} style={styles.datePicker}>{timingFrom || 'Select Time'}</Text>
+      {showTimePickerFrom && (
+        <DateTimePicker
+          value={new Date()}
+          mode="time"
+          display="default"
+          onChange={handleTimeFromChange}
+        />
+      )}
+      {errors.timingFrom && <Text style={styles.errorText}>{errors.timingFrom}</Text>}
+
+      <Text style={styles.label}>Timing To</Text>
+      <Text onPress={() => setShowTimePickerTo(true)} style={styles.datePicker}>{timingTo || 'Select Time'}</Text>
+      {showTimePickerTo && (
+        <DateTimePicker
+          value={new Date()}
+          mode="time"
+          display="default"
+          onChange={handleTimeToChange}
+        />
+      )}
+      {errors.timingTo && <Text style={styles.errorText}>{errors.timingTo}</Text>}
+
+      <InputField
+        label="Total Hours"
+        value={totalHours}
+        onChangeText={setTotalHours}
+        placeholder="Enter total hours"
+        keyboardType="numeric"
+        error={errors.totalHours}
+      />
 
       <Text style={styles.section}>What Will Be Served</Text>
       <RadioGroup
@@ -291,6 +488,7 @@ const HallBookingForm = ({ navigation }) => {
         value={serveItem}
         onChange={setServeItem}
         radioColor={colors.secondryColor}
+        error={errors.serveItem}
       />
       {serveItem === 'other' && (
         <InputField
@@ -298,6 +496,7 @@ const HallBookingForm = ({ navigation }) => {
           value={otherServeDetail}
           onChangeText={setOtherServeDetail}
           placeholder="Other serving items"
+          error={errors.otherServeDetail}
         />
       )}
 
@@ -307,16 +506,19 @@ const HallBookingForm = ({ navigation }) => {
         label="Scan of JCIC / CNIC"
         file={jcicFile}
         onPick={setJcicFile}
+        error={errors.jcicFile}
       />
       <AttachmentField
         label="Request Letter (in case of organization)"
         file={requestLetter}
         onPick={setRequestLetter}
+        error={errors.requestLetter}
       />
       <AttachmentField
         label="Online Payment Receipt"
         file={paymentReceipt}
         onPick={setPaymentReceipt}
+        error={errors.paymentReceipt}
       />
 
       {isSubmitting && (
@@ -421,7 +623,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: colors.secondryColor,
   },
-
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    color: '#333',
+  },
+  datePicker: {
+    borderWidth: 1,
+    borderColor: colors.secondryColor,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    textAlign: 'center',
+    color: colors.secondryColor,
+  },
     undertakingBox: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
@@ -441,6 +657,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: '#444',
     lineHeight: 20,
+  },
+  errorText: {
+    fontSize: 12,
+    color: 'red',
+    marginBottom: 8,
   },
 
 });

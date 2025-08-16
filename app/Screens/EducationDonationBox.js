@@ -23,6 +23,7 @@ const EducationDonationBoxForm = ({ navigation }) => {
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userJCIC, setUserJCIC] = useState(null);
+  const [errors, setErrors] = useState({});
   
   // Get user JCIC from Redux or AsyncStorage
   const userId = useSelector(state => state.reducer.userId);
@@ -56,30 +57,42 @@ const EducationDonationBoxForm = ({ navigation }) => {
       email: email || '',
       date: date || '',
     };
-    
+
+    // Inline required field validation for Father's/Husband's Name and Date
+    const fieldErrors = {};
+    if (!fatherOrHusband.trim()) {
+      fieldErrors.fatherOrHusband = "Father's / Husband's Name is required.";
+    }
+    if (!date.trim()) {
+      fieldErrors.date = "Date is required.";
+    }
     // Sanitize form data
     const sanitizedData = sanitizeFormData(formData);
-    
+
     // Validate form data
     try {
       const validation = validateEducationDonationBoxForm(sanitizedData);
-      
-      if (!validation.isValid) {
-        Alert.alert(
-          'Validation Error',
-          `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
-          [{ text: 'OK' }]
-        );
+      if (!validation.isValid || Object.keys(fieldErrors).length > 0) {
+        validation.errors.forEach((error) => {
+          Object.entries({
+            name: 'Full Name',
+            fatherOrHusband: "Father's / Husband's Name",
+            address: 'Address',
+            cnic: 'CNIC Number',
+            jcic: 'JCIC Number',
+            email: 'Email Address',
+            date: 'Date',
+          }).forEach(([key, label]) => {
+            if (error.startsWith(label)) {
+              fieldErrors[key] = error;
+            }
+          });
+        });
+        setErrors(fieldErrors);
         return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'An error occurred during validation. Please try again.');
-      return;
-    }
-    
-    // Show warnings if any
-    try {
-      const validation = validateEducationDonationBoxForm(sanitizedData);
+      setErrors({});
+      // Show warnings if any
       if (validation.warnings.length > 0) {
         Alert.alert(
           'Warnings',
@@ -93,8 +106,8 @@ const EducationDonationBoxForm = ({ navigation }) => {
         submitForm(sanitizedData);
       }
     } catch (error) {
-      // If there's an error with warnings, just proceed with submission
-      submitForm(sanitizedData);
+      Alert.alert('Error', 'An error occurred during validation. Please try again.');
+      return;
     }
   };
   
@@ -141,14 +154,14 @@ const EducationDonationBoxForm = ({ navigation }) => {
         This box will allow you to contribute towards the Jamaat's education fund by collecting donations conveniently at your home.
       </Text>
 
-      <Text style={styles.section}>Personal Details</Text>
-      <InputField label="Full Name" value={name} onChangeText={setName} placeholder="Full Name" />
-      <InputField label="Father's / Husband's Name" value={fatherOrHusband} onChangeText={setFatherOrHusband} placeholder="Father's / Husband's Name" />
-      <InputField label="Address" value={address} onChangeText={setAddress} placeholder="Home Address" />
-      <InputField label="CNIC Number" value={cnic} onChangeText={setCnic} placeholder="XXXXX-XXXXXXX-X" keyboardType="numeric" />
-      <InputField label="JCIC Number" value={jcic} onChangeText={setJcic} placeholder="JCIC Number" />
-      <InputField label="Email Address" value={email} onChangeText={setEmail} placeholder="example@email.com" keyboardType="email-address" />
-      <InputField label="Date" value={date} onChangeText={setDate} placeholder="DD-MM-YYYY" />
+  <Text style={styles.section}>Personal Details</Text>
+  <InputField label="Full Name" value={name} onChangeText={setName} placeholder="Full Name" error={errors.name} />
+  <InputField label="Father's / Husband's Name" value={fatherOrHusband} onChangeText={setFatherOrHusband} placeholder="Father's / Husband's Name" error={errors.fatherOrHusband} />
+  <InputField label="Address" value={address} onChangeText={setAddress} placeholder="Home Address" error={errors.address} />
+  <InputField label="CNIC Number" value={cnic} onChangeText={setCnic} placeholder="XXXXX-XXXXXXX-X" keyboardType="numeric" error={errors.cnic} />
+  <InputField label="JCIC Number" value={jcic} onChangeText={setJcic} placeholder="JCIC Number" error={errors.jcic} />
+  <InputField label="Email Address" value={email} onChangeText={setEmail} placeholder="example@email.com" keyboardType="email-address" error={errors.email} />
+  <InputField label="Date (For Sending The Donation Box)" value={date} onChangeText={setDate} placeholder="DD-MM-YYYY" error={errors.date} />
 
       {isSubmitting && (
         <View style={styles.loadingContainer}>

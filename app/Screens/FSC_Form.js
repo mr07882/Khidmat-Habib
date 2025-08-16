@@ -91,7 +91,7 @@ const FSC_Form = () => {
 
       {/* Section 1: Applicant Details */}
       <Text style={styles.section}>Section 1: Applicant Details</Text>
-      <InputField label="Name" value={name} onChangeText={setName} placeholder="Full Name" />
+      <InputField label="Name" value={name} onChangeText={setName} placeholder="Enter your full name" />
       <RadioGroup
         options={genderOptions.map(opt => ({
           label: <Text style={{ color: colors.secondryColor }}>{opt.label}</Text>,
@@ -101,13 +101,13 @@ const FSC_Form = () => {
         onChange={setGender}
         radioColor={colors.secondryColor}
       />
-      <InputField label="Father/Husband's Name" value={fatherName} onChangeText={setFatherName} placeholder="Father/Husband's Name" />
-      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Surname" />
-      <InputField label="Address" value={address} onChangeText={setAddress} placeholder="Address" multiline />
-      <InputField label="CNIC No" value={cnic} onChangeText={setCnic} placeholder="CNIC Number" keyboardType="numeric" />
-      <InputField label="JCIC No" value={jcic} onChangeText={setJcic} placeholder="JCIC Number" />
-      <InputField label="Cell No" value={cellNo} onChangeText={setCellNo} placeholder="Cell Number" keyboardType="phone-pad" />
-      <InputField label="Tel No" value={telNo} onChangeText={setTelNo} placeholder="Telephone Number" keyboardType="phone-pad" />
+      <InputField label="Father/Husband's Name" value={fatherName} onChangeText={setFatherName} placeholder="Enter the name of your father/husband" />
+      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Enter your surname" />
+      <InputField label="Address" value={address} onChangeText={setAddress} placeholder="Enter your complete address" multiline />
+      <InputField label="CNIC No" value={cnic} onChangeText={setCnic} placeholder="XXXXX-XXXXXXX-X" keyboardType="numeric" />
+      <InputField label="JCIC No" value={jcic} onChangeText={setJcic} placeholder="Enter your 16-digit JCIC number" />
+      <InputField label="Cell No" value={cellNo} onChangeText={setCellNo} placeholder="03XXXXXXXXX" keyboardType="phone-pad" />
+      <InputField label="Tel No" value={telNo} onChangeText={setTelNo} placeholder="021XXXXXXX" keyboardType="phone-pad" />
       <InputField label="Email" value={email} onChangeText={setEmail} placeholder="Email Address" keyboardType="email-address" />
       <PhotoUpload photo={photo} setPhoto={setPhoto} />
 

@@ -32,7 +32,7 @@ const FamilyParticipation = ({ navigation }) => {
   const [name, setName] = useState('');
   const [relation, setRelation] = useState('');
   const [relationship, setRelationship] = useState('');
-  const [membershipNo, setMembershipNo] = useState('');
+  const [jcic, setJcic] = useState('');
   const [email, setEmail] = useState('');
   const [cellNo, setCellNo] = useState('');
   const [ptclNo, setPtclNo] = useState('');
@@ -47,6 +47,7 @@ const FamilyParticipation = ({ navigation }) => {
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userJCIC, setUserJCIC] = useState(null);
+  const [errors, setErrors] = useState({});
   
   // Get user JCIC from Redux or AsyncStorage
   const userId = useSelector(state => state.reducer.userId);
@@ -87,13 +88,12 @@ const FamilyParticipation = ({ navigation }) => {
       Alert.alert('Error', 'User not authenticated. Please login again.');
       return;
     }
-    
     // Prepare form data
     const formData = {
       name: name || '',
       relation: relation || '',
       relationship: relationship || '',
-      membershipNo: membershipNo || '',
+      jcic: jcic || '',
       email: email || '',
       cellNo: cellNo || '',
       ptclNo: ptclNo || '',
@@ -106,29 +106,40 @@ const FamilyParticipation = ({ navigation }) => {
       transactionSlip: transactionSlip || null,
       date: date.toISOString(),
     };
-    
     // Sanitize form data
     const sanitizedData = sanitizeFormData(formData);
-    
     // Validate form data
     try {
       const validation = validateFamilyParticipationForm(sanitizedData);
-      
       if (!validation.isValid) {
-        Alert.alert(
-          'Validation Error',
-          `Please fix the following errors:\n\n${validation.errors.join('\n')}`,
-          [{ text: 'OK' }]
-        );
+        const fieldErrors = {};
+        validation.errors.forEach((error) => {
+          Object.entries({
+            name: 'Your Name',
+            relation: 'Family Member Name',
+            relationship: 'Relationship with Family Member',
+            jcic: 'JCIC',
+            email: 'Email',
+            cellNo: 'Cell Number',
+            ptclNo: 'PTCL Number',
+            amount: 'Amount Donated',
+            frequency: 'Payment Frequency',
+            mode: 'Payment Method',
+            chequeName: 'Name as on Cheque',
+            signature: 'Signature',
+            address: 'Address',
+            transactionSlip: 'Transaction Slip',
+          }).forEach(([key, label]) => {
+            if (error.startsWith(label)) {
+              fieldErrors[key] = error;
+            }
+          });
+        });
+        setErrors(fieldErrors);
         return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'An error occurred during validation. Please try again.');
-      return;
-    }
-    
-    // Show warnings if any
-    try {
+      setErrors({});
+      // ...existing code...
       if (validation.warnings.length > 0) {
         Alert.alert(
           'Warnings',
@@ -142,8 +153,8 @@ const FamilyParticipation = ({ navigation }) => {
         submitForm(sanitizedData);
       }
     } catch (error) {
-      // If there's an error with warnings, just proceed with submission
-      submitForm(sanitizedData);
+      Alert.alert('Error', 'An error occurred during validation. Please try again.');
+      return;
     }
   };
   
@@ -211,24 +222,28 @@ const FamilyParticipation = ({ navigation }) => {
         value={name}
         onChangeText={setName}
         placeholder="Enter your name"
+        error={errors.name}
       />
       <InputField
         label="Family Member Name"
         value={relation}
         onChangeText={setRelation}
         placeholder="Enter family member name"
+        error={errors.relation}
       />
       <InputField
         label="Relationship with Family Member"
         value={relationship}
         onChangeText={setRelationship}
         placeholder="e.g. Father, Mother, Son, Daughter"
+        error={errors.relationship}
       />
       <InputField
-        label="Membership Number"
-        value={membershipNo}
-        onChangeText={setMembershipNo}
-        placeholder="Membership No."
+        label="JCIC"
+        value={jcic}
+        onChangeText={setJcic}
+        placeholder="Enter JCIC number"
+        error={errors.jcic}
       />
       <InputField
         label="Email"
@@ -236,6 +251,7 @@ const FamilyParticipation = ({ navigation }) => {
         onChangeText={setEmail}
         placeholder="Email"
         keyboardType="email-address"
+        error={errors.email}
       />
       <InputField
         label="Cell No."
@@ -243,6 +259,7 @@ const FamilyParticipation = ({ navigation }) => {
         onChangeText={setCellNo}
         placeholder="Cell No."
         keyboardType="phone-pad"
+        error={errors.cellNo}
       />
       <InputField
         label="PTCL No."
@@ -250,6 +267,7 @@ const FamilyParticipation = ({ navigation }) => {
         onChangeText={setPtclNo}
         placeholder="PTCL No."
         keyboardType="phone-pad"
+        error={errors.ptclNo}
       />
 
       {/* Payment Section */}
@@ -260,6 +278,7 @@ const FamilyParticipation = ({ navigation }) => {
         onChangeText={setAmount}
         placeholder="Enter amount"
         keyboardType="numeric"
+        error={errors.amount}
       />
       <Text style={styles.label}>Payment Frequency</Text>
       <RadioGroup
@@ -267,6 +286,7 @@ const FamilyParticipation = ({ navigation }) => {
         value={frequency[0] || ''}
         onChange={val => setFrequency([val])}
         radioColor={colors.secondryColor}
+        error={errors.frequency}
       />
       <Text style={styles.label}>Payment Method</Text>
       <RadioGroup
@@ -274,6 +294,7 @@ const FamilyParticipation = ({ navigation }) => {
         value={mode[0] || ''}
         onChange={val => setMode([val])}
         radioColor={colors.secondryColor}
+        error={errors.mode}
       />
       {/* Cheque Name Input */}
       {mode.includes('cheque') && (
@@ -282,6 +303,7 @@ const FamilyParticipation = ({ navigation }) => {
           value={chequeName}
           onChangeText={setChequeName}
           placeholder="Enter name as on cheque"
+          error={errors.chequeName}
         />
       )}
       {/* Online Payment Details */}
@@ -295,7 +317,7 @@ const FamilyParticipation = ({ navigation }) => {
           <Text style={styles.accountLabel}>IBAN</Text>
           <Text style={styles.accountValue}>PK92 BAHL 1047 0081 0022 1501</Text>
           <Text style={[styles.inputLabel, { marginTop: 8 }]}>Attach Transaction Slip</Text>
-          <PhotoUpload photo={transactionSlip} setPhoto={setTransactionSlip} />
+          <PhotoUpload photo={transactionSlip} setPhoto={setTransactionSlip} error={errors.transactionSlip} />
         </View>
       )}
       
@@ -306,6 +328,7 @@ const FamilyParticipation = ({ navigation }) => {
         value={signature}
         onChangeText={setSignature}
         placeholder="Enter your full name as signature"
+        error={errors.signature}
       />
       <InputField
         label="Address"
@@ -313,6 +336,7 @@ const FamilyParticipation = ({ navigation }) => {
         onChangeText={setAddress}
         placeholder="Enter your complete address"
         multiline={true}
+        error={errors.address}
       />
       
       {isSubmitting && (

@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { colors } from '../../Config/AppConfigData';
 
-const InputField = ({ label, value, onChangeText, placeholder, multiline = false, keyboardType = 'default', style, inputStyle, ...props }) => (
+const InputField = ({ label, value, onChangeText, placeholder, multiline = false, keyboardType = 'default', style, inputStyle, error, ...props }) => (
   <View style={[styles.container, style]}>
     {label ? <Text style={styles.label}>{label}</Text> : null}
     <TextInput
-      style={[styles.input, inputStyle]}
+      style={[styles.input, inputStyle, error ? styles.errorInput : null]}
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
@@ -15,6 +15,7 @@ const InputField = ({ label, value, onChangeText, placeholder, multiline = false
       keyboardType={keyboardType}
       {...props}
     />
+    {error ? <Text style={styles.errorText}>{error}</Text> : null}
   </View>
 );
 
@@ -35,8 +36,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 15,
-    color: colors.primaryColor,
+    color: 'black', // Changed text color to black
     backgroundColor: '#fff',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 13,
+    marginTop: 4,
+  },
+  errorInput: {
+    borderColor: 'red',
   },
 });
 

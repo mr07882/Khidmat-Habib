@@ -63,6 +63,9 @@ const DeathInfoForm = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userJCIC, setUserJCIC] = useState(null);
 
+  // Error state
+  const [errors, setErrors] = useState({});
+
   const userId = useSelector(state => state.reducer.userId);
   
   useEffect(() => {
@@ -77,84 +80,146 @@ const DeathInfoForm = ({ navigation }) => {
     getUserJCIC();
   }, [userId]);
 
+  const validateForm = () => {
+    const newErrors = {};
+    const cnicRegex = /^[0-9]{5}-[0-9]{7}-[0-9]$/;
+    const jcicRegex = /^[0-9]{16}$/;
+
+    if (!deceasedName) newErrors.deceasedName = 'Name of the deceased is required.';
+    if (!deceasedAge) newErrors.deceasedAge = 'Age of the deceased is required.';
+    if (!deceasedMembership) {
+      newErrors.deceasedMembership = 'JCIC of the deceased is required.';
+    } else if (!jcicRegex.test(deceasedMembership)) {
+      newErrors.deceasedMembership = 'Invalid JCIC format. It must be a 16-digit numeric value.';
+    }
+    if (!deceasedCnic) {
+      newErrors.deceasedCnic = 'CNIC of the deceased is required.';
+    } else if (!cnicRegex.test(deceasedCnic)) {
+      newErrors.deceasedCnic = 'Invalid CNIC format. Use XXXXX-XXXXXXX-X.';
+    }
+    if (!deceasedAddress) newErrors.deceasedAddress = 'Address of the deceased is required.';
+    if (!causeOfDeath) newErrors.causeOfDeath = 'Cause of death is required.';
+    if (!doctorName) newErrors.doctorName = 'Doctor name is required.';
+
+    if (!fatherName) newErrors.fatherName = 'Father name is required.';
+    if (!fatherSurname) newErrors.fatherSurname = 'Father surname is required.';
+    if (!fatherMembership) {
+      newErrors.fatherMembership = 'Father JCIC is required.';
+    } else if (!jcicRegex.test(fatherMembership)) {
+      newErrors.fatherMembership = 'Invalid JCIC format. It must be a 16-digit numeric value.';
+    }
+    if (!fatherCnic) {
+      newErrors.fatherCnic = 'Father CNIC is required.';
+    } else if (!cnicRegex.test(fatherCnic)) {
+      newErrors.fatherCnic = 'Invalid CNIC format. Use XXXXX-XXXXXXX-X.';
+    }
+
+    if (!informer1Name) newErrors.informer1Name = 'Informer 1 name is required.';
+    if (!informer1Surname) newErrors.informer1Surname = 'Informer 1 surname is required.';
+    if (!informer1Membership) {
+      newErrors.informer1Membership = 'Informer 1 JCIC is required.';
+    } else if (!jcicRegex.test(informer1Membership)) {
+      newErrors.informer1Membership = 'Invalid JCIC format. It must be a 16-digit numeric value.';
+    }
+    if (!informer1Cnic) {
+      newErrors.informer1Cnic = 'Informer 1 CNIC is required.';
+    } else if (!cnicRegex.test(informer1Cnic)) {
+      newErrors.informer1Cnic = 'Invalid CNIC format. Use XXXXX-XXXXXXX-X.';
+    }
+    if (!informer1Address) newErrors.informer1Address = 'Informer 1 address is required.';
+    if (!informer1Phone) newErrors.informer1Phone = 'Informer 1 phone number is required.';
+
+    if (!deathCertAttachment) newErrors.deathCertAttachment = 'Death Certificate is required.';
+    if (!deceasedJcicAttachment) newErrors.deceasedJcicAttachment = 'JCIC of Deceased is required.';
+    if (!deceasedCnicAttachment) newErrors.deceasedCnicAttachment = 'CNIC of Deceased is required.';
+    if (!informer1JcicAttachment) newErrors.informer1JcicAttachment = 'JCIC of Informer 1 is required.';
+    if (!informer1CnicAttachment) newErrors.informer1CnicAttachment = 'CNIC of Informer 1 is required.';
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!userJCIC) {
-      Alert.alert('Error', 'User not authenticated. Please login again.');
-      return;
-    }
+    if (validateForm()) {
+      if (!userJCIC) {
+        Alert.alert('Error', 'User not authenticated. Please login again.');
+        return;
+      }
 
-    // Check if required attachments are selected
-    if (!deathCertAttachment) {
-      Alert.alert('Validation Error', 'Death Certificate is required');
-      return;
-    }
-    if (!deceasedJcicAttachment) {
-      Alert.alert('Validation Error', 'JCIC of Deceased is required');
-      return;
-    }
-    if (!deceasedCnicAttachment) {
-      Alert.alert('Validation Error', 'CNIC of Deceased is required');
-      return;
-    }
-    if (!informer1JcicAttachment) {
-      Alert.alert('Validation Error', 'JCIC of Informer 1 is required');
-      return;
-    }
-    if (!informer1CnicAttachment) {
-      Alert.alert('Validation Error', 'CNIC of Informer 1 is required');
-      return;
-    }
-    if (!informer2JcicAttachment) {
-      Alert.alert('Validation Error', 'JCIC of Informer 2 is required');
-      return;
-    }
-    if (!informer2CnicAttachment) {
-      Alert.alert('Validation Error', 'CNIC of Informer 2 is required');
-      return;
-    }
+      // Check if required attachments are selected
+      if (!deathCertAttachment) {
+        Alert.alert('Validation Error', 'Death Certificate is required');
+        return;
+      }
+      if (!deceasedJcicAttachment) {
+        Alert.alert('Validation Error', 'JCIC of Deceased is required');
+        return;
+      }
+      if (!deceasedCnicAttachment) {
+        Alert.alert('Validation Error', 'CNIC of Deceased is required');
+        return;
+      }
+      if (!informer1JcicAttachment) {
+        Alert.alert('Validation Error', 'JCIC of Informer 1 is required');
+        return;
+      }
+      if (!informer1CnicAttachment) {
+        Alert.alert('Validation Error', 'CNIC of Informer 1 is required');
+        return;
+      }
+      if (!informer2JcicAttachment) {
+        Alert.alert('Validation Error', 'JCIC of Informer 2 is required');
+        return;
+      }
+      if (!informer2CnicAttachment) {
+        Alert.alert('Validation Error', 'CNIC of Informer 2 is required');
+        return;
+      }
 
-    // Flatten form data
-    const formData = {
-      deceasedName,
-      deceasedAge,
-      deceasedMembership,
-      deceasedCnic,
-      deceasedAddress,
-      causeOfDeath,
-      doctorName,
-      fatherName,
-      fatherSurname,
-      fatherMembership,
-      fatherCnic,
-      husbandName,
-      husbandSurname,
-      husbandMembership,
-      husbandCnic,
-      informer1Name,
-      informer1Surname,
-      informer1Membership,
-      informer1Cnic,
-      informer1Address,
-      informer1Phone,
-      informer2Name,
-      informer2Surname,
-      informer2Membership,
-      informer2Cnic,
-      informer2Address,
-      informer2Phone,
-    };
+      // Flatten form data
+      const formData = {
+        deceasedName,
+        deceasedAge,
+        deceasedMembership,
+        deceasedCnic,
+        deceasedAddress,
+        causeOfDeath,
+        doctorName,
+        fatherName,
+        fatherSurname,
+        fatherMembership,
+        fatherCnic,
+        husbandName,
+        husbandSurname,
+        husbandMembership,
+        husbandCnic,
+        informer1Name,
+        informer1Surname,
+        informer1Membership,
+        informer1Cnic,
+        informer1Address,
+        informer1Phone,
+        informer2Name,
+        informer2Surname,
+        informer2Membership,
+        informer2Cnic,
+        informer2Address,
+        informer2Phone,
+      };
 
-    const sanitized = sanitizeFormData(formData);
+      const sanitized = sanitizeFormData(formData);
 
-    // Validate form data
-    const validation = validateDeathInfoForm(sanitized);
-    if (!validation.isValid) {
-      Alert.alert('Validation Error', validation.errors.join('\n'));
-      return;
+      // Validate form data
+      const validation = validateDeathInfoForm(sanitized);
+      if (!validation.isValid) {
+        Alert.alert('Validation Error', validation.errors.join('\n'));
+        return;
+      }
+
+      // Proceed with form submission
+      submitForm(sanitized);
     }
-
-    // Proceed with form submission
-    submitForm(sanitized);
   };
 
   const submitForm = async (data) => {
@@ -326,68 +391,90 @@ const DeathInfoForm = ({ navigation }) => {
 
       {/* Deceased Section */}
       <Text style={styles.sectionHeader}>Deceased Information</Text>
-      <FormInput label="Name" value={deceasedName} onChangeText={setDeceasedName} />
-      <FormInput label="Age" value={deceasedAge} onChangeText={setDeceasedAge} keyboardType="numeric" />
-      <FormInput label="Membership Number" value={deceasedMembership} onChangeText={setDeceasedMembership} />
-      <FormInput label="CNIC Number" value={deceasedCnic} onChangeText={setDeceasedCnic} />
-      <FormInput label="Address" value={deceasedAddress} onChangeText={setDeceasedAddress} multiline />
-      <FormInput label="Cause of Death" value={causeOfDeath} onChangeText={setCauseOfDeath} />
-      <FormInput label="Doctor's Name" value={doctorName} onChangeText={setDoctorName} />
+      <FormInput label="Name" value={deceasedName} onChangeText={setDeceasedName} placeholder="Enter name of the deceased" />
+      {errors.deceasedName && <Text style={styles.error}>{errors.deceasedName}</Text>}
+      <FormInput label="Age" value={deceasedAge} onChangeText={setDeceasedAge} keyboardType="numeric"  placeholder="Enter age of the deceased"/>
+      {errors.deceasedAge && <Text style={styles.error}>{errors.deceasedAge}</Text>}
+      <FormInput label="JCIC" value={deceasedMembership} onChangeText={setDeceasedMembership}  placeholder="Enter 16-digit JCIC of the deceased"/>
+      {errors.deceasedMembership && <Text style={styles.error}>{errors.deceasedMembership}</Text>}
+      <FormInput label="CNIC Number" value={deceasedCnic} onChangeText={setDeceasedCnic}  placeholder="XXXXX-XXXXXXX-X"/>
+      {errors.deceasedCnic && <Text style={styles.error}>{errors.deceasedCnic}</Text>}
+      <FormInput label="Address" value={deceasedAddress} onChangeText={setDeceasedAddress} multiline  placeholder="Enter address of the deceased" />
+      {errors.deceasedAddress && <Text style={styles.error}>{errors.deceasedAddress}</Text>}
+      <FormInput label="Cause of Death" value={causeOfDeath} onChangeText={setCauseOfDeath}  placeholder="Enter the cause of death" />
+      {errors.causeOfDeath && <Text style={styles.error}>{errors.causeOfDeath}</Text>}
+      <FormInput label="Doctor's Name" value={doctorName} onChangeText={setDoctorName}  placeholder="Enter name of attending doctor"/>
+      {errors.doctorName && <Text style={styles.error}>{errors.doctorName}</Text>}
 
       {/* Father Section */}
       <Text style={styles.sectionHeader}>Father of the Deceased</Text>
       <FormInput label="Father Name" value={fatherName} onChangeText={setFatherName} />
+      {errors.fatherName && <Text style={styles.error}>{errors.fatherName}</Text>}
       <FormInput label="Surname" value={fatherSurname} onChangeText={setFatherSurname} />
-      <FormInput label="Membership Number" value={fatherMembership} onChangeText={setFatherMembership} />
+      {errors.fatherSurname && <Text style={styles.error}>{errors.fatherSurname}</Text>}
+      <FormInput label="JCIC" value={fatherMembership} onChangeText={setFatherMembership} />
+      {errors.fatherMembership && <Text style={styles.error}>{errors.fatherMembership}</Text>}
       <FormInput label="CNIC Number" value={fatherCnic} onChangeText={setFatherCnic} />
+      {errors.fatherCnic && <Text style={styles.error}>{errors.fatherCnic}</Text>}
 
       {/* Husband Section */}
       <Text style={styles.sectionHeader}>Husband of the Deceased</Text>
       <FormInput label="Husband's Name" value={husbandName} onChangeText={setHusbandName} />
       <FormInput label="Surname" value={husbandSurname} onChangeText={setHusbandSurname} />
-      <FormInput label="Membership Number" value={husbandMembership} onChangeText={setHusbandMembership} />
+      <FormInput label="JCIC" value={husbandMembership} onChangeText={setHusbandMembership} />
       <FormInput label="CNIC Number" value={husbandCnic} onChangeText={setHusbandCnic} />
 
       {/* Informer 1 Section */}
       <Text style={styles.sectionHeader}>Informer 1</Text>
       <FormInput label="Full Name" value={informer1Name} onChangeText={setInformer1Name} />
+      {errors.informer1Name && <Text style={styles.error}>{errors.informer1Name}</Text>}
       <FormInput label="Surname" value={informer1Surname} onChangeText={setInformer1Surname} />
-      <FormInput label="Membership Number" value={informer1Membership} onChangeText={setInformer1Membership} />
+      {errors.informer1Surname && <Text style={styles.error}>{errors.informer1Surname}</Text>}
+      <FormInput label="JCIC" value={informer1Membership} onChangeText={setInformer1Membership} />
+      {errors.informer1Membership && <Text style={styles.error}>{errors.informer1Membership}</Text>}
       <FormInput label="CNIC Number" value={informer1Cnic} onChangeText={setInformer1Cnic} />
+      {errors.informer1Cnic && <Text style={styles.error}>{errors.informer1Cnic}</Text>}
       <FormInput label="Address" value={informer1Address} onChangeText={setInformer1Address} multiline />
+      {errors.informer1Address && <Text style={styles.error}>{errors.informer1Address}</Text>}
       <FormInput label="Tel/Cell Number" value={informer1Phone} onChangeText={setInformer1Phone} />
+      {errors.informer1Phone && <Text style={styles.error}>{errors.informer1Phone}</Text>}
 
       {/* Informer 2 Section */}
       <Text style={styles.sectionHeader}>Informer 2</Text>
       <FormInput label="Full Name" value={informer2Name} onChangeText={setInformer2Name} />
       <FormInput label="Surname" value={informer2Surname} onChangeText={setInformer2Surname} />
-      <FormInput label="Membership Number" value={informer2Membership} onChangeText={setInformer2Membership} />
+      <FormInput label="JCIC" value={informer2Membership} onChangeText={setInformer2Membership} />
       <FormInput label="CNIC Number" value={informer2Cnic} onChangeText={setInformer2Cnic} />
       <FormInput label="Address" value={informer2Address} onChangeText={setInformer2Address} multiline />
       <FormInput label="Tel/Cell Number" value={informer2Phone} onChangeText={setInformer2Phone} />
 
       {/* Attachments Section */}
       <Text style={styles.sectionHeader}>Attachments</Text>
+      {errors.deathCertAttachment && <Text style={styles.error}>{errors.deathCertAttachment}</Text>}
       <AttachmentField
         label="Death Certificate"
         file={deathCertAttachment}
         onPick={setDeathCertAttachment}
       />
+      {errors.deceasedJcicAttachment && <Text style={styles.error}>{errors.deceasedJcicAttachment}</Text>}
       <AttachmentField
         label="JCIC of Deceased"
         file={deceasedJcicAttachment}
         onPick={setDeceasedJcicAttachment}
       />
+      {errors.deceasedCnicAttachment && <Text style={styles.error}>{errors.deceasedCnicAttachment}</Text>}
       <AttachmentField
         label="CNIC of Deceased"
         file={deceasedCnicAttachment}
         onPick={setDeceasedCnicAttachment}
       />
+      {errors.informer1JcicAttachment && <Text style={styles.error}>{errors.informer1JcicAttachment}</Text>}
       <AttachmentField
         label="JCIC of Informer 1"
         file={informer1JcicAttachment}
         onPick={setInformer1JcicAttachment}
       />
+      {errors.informer1CnicAttachment && <Text style={styles.error}>{errors.informer1CnicAttachment}</Text>}
       <AttachmentField
         label="CNIC of Informer 1"
         file={informer1CnicAttachment}
@@ -464,7 +551,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 15,
-    color: colors.primaryColor,
+    color: 'black', // Updated text color to black
     backgroundColor: '#fff',
   },
   attachmentLabel: {
@@ -473,6 +560,11 @@ const styles = StyleSheet.create({
     color: colors.secondryColor,
     marginTop: 10,
     marginBottom: 2,
+  },
+  error: {
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 4,
   },
 });
 

@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native';
 import InputField from '../Components/FormElements/InputField';
 import RadioGroup from '../Components/FormElements/RadioGroup';
 import SubmitButton from '../Components/FormElements/SubmitButton';
 import { colors } from '../Config/AppConfigData';
+import { submitGraveRepairForm } from '../Api/Firebase';
+import { validateRequired, validateJCIC, validatePhone } from '../Api/Firebase/FormValidation';
+import { useSelector } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 
 const graveyardOptions = [
   { label: 'Hussaini Bagh 1', value: 'hussaini_bagh_1' },
@@ -12,6 +16,8 @@ const graveyardOptions = [
 ];
 
 const GraveRepairForm = () => {
+  const navigation = useNavigation();
+
   // Section 1: Applicant Details
   const [applicantName, setApplicantName] = useState('');
   const [applicantFatherHusbandName, setApplicantFatherHusbandName] = useState('');
@@ -29,8 +35,39 @@ const GraveRepairForm = () => {
   // Section 3: Repair Details
   const [repairDescription, setRepairDescription] = useState('');
 
-  const handleSubmit = () => {
-    const data = {
+  // Validation errors
+  const [errors, setErrors] = useState({});
+
+  // Get logged-in member's JCIC
+  const userJCIC = useSelector((state) => state.reducer.userId);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Validate applicant fields
+    if (!validateRequired(applicantName).isValid) newErrors.applicantName = 'Name is required';
+    if (!validateRequired(applicantFatherHusbandName).isValid) newErrors.applicantFatherHusbandName = 'Father/Husband Name is required';
+    if (!validateJCIC(membershipNo).isValid) newErrors.membershipNo = 'Invalid Membership No';
+    if (!validatePhone(cellNo).isValid) newErrors.cellNo = 'Invalid Cell No';
+
+    // Validate deceased fields
+    if (!validateRequired(deceasedName).isValid) newErrors.deceasedName = 'Name is required';
+    if (!validateRequired(deceasedFatherHusbandName).isValid) newErrors.deceasedFatherHusbandName = 'Father/Husband Name is required';
+    if (!validateRequired(deceasedSurname).isValid) newErrors.deceasedSurname = 'Surname is required';
+    if (!validateRequired(graveNo).isValid) newErrors.graveNo = 'Grave No is required';
+    if (!validateRequired(graveyard).isValid) newErrors.graveyard = 'Graveyard is required';
+
+    // Validate repair details
+    if (!validateRequired(repairDescription).isValid) newErrors.repairDescription = 'Repair description is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    const formData = {
       applicant: {
         name: applicantName,
         fatherHusbandName: applicantFatherHusbandName,
@@ -50,8 +87,21 @@ const GraveRepairForm = () => {
       },
     };
 
-    console.log('Grave Repair Submission:', data);
-    // TODO: Submit to backend or handle data
+    const response = await submitGraveRepairForm(userJCIC, formData);
+    if (response.success) {
+      Alert.alert(
+        'Success',
+        'Grave Repair form submitted successfully! You will be notified about the status of your application.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } else {
+      Alert.alert('Error', `Submission failed: ${response.error}`, [{ text: 'OK' }]);
+    }
   };
 
   return (
@@ -67,25 +117,28 @@ const GraveRepairForm = () => {
         label="Name" 
         value={applicantName} 
         onChangeText={setApplicantName} 
-        placeholder="Applicant's Full Name" 
+        placeholder="Enter your full name" 
+        error={errors.applicantName}
       />
       <InputField 
         label="Father's/Husband's Name" 
         value={applicantFatherHusbandName} 
         onChangeText={setApplicantFatherHusbandName} 
-        placeholder="Father's or Husband's Name" 
+        placeholder="Enter your father's or husband's name" 
+        error={errors.applicantFatherHusbandName}
       />
       <InputField 
         label="Membership No" 
         value={membershipNo} 
         onChangeText={setMembershipNo} 
-        placeholder="XXXX XXXX XXXX XXXX" 
+        placeholder="XXXXXXXXXXXXXXXX" 
+        error={errors.membershipNo}
       />
       <InputField 
         label="Tel No" 
         value={telNo} 
         onChangeText={setTelNo} 
-        placeholder="021-XXXXXXXX" 
+        placeholder="021XXXXXXXX" 
         keyboardType="phone-pad"
       />
       <InputField 
@@ -94,6 +147,7 @@ const GraveRepairForm = () => {
         onChangeText={setCellNo} 
         placeholder="03XXXXXXXXX" 
         keyboardType="phone-pad"
+        error={errors.cellNo}
       />
 
       {/* Section 2: Deceased Person Details */}
@@ -103,24 +157,28 @@ const GraveRepairForm = () => {
         value={deceasedName} 
         onChangeText={setDeceasedName} 
         placeholder="Full Name of Deceased" 
+        error={errors.deceasedName}
       />
       <InputField 
         label="Father's/Husband's Name" 
         value={deceasedFatherHusbandName} 
         onChangeText={setDeceasedFatherHusbandName} 
         placeholder="Father's or Husband's Name of Deceased" 
+        error={errors.deceasedFatherHusbandName}
       />
       <InputField 
         label="Surname" 
         value={deceasedSurname} 
         onChangeText={setDeceasedSurname} 
         placeholder="Surname of Deceased" 
+        error={errors.deceasedSurname}
       />
       <InputField 
         label="Grave No" 
         value={graveNo} 
         onChangeText={setGraveNo} 
         placeholder="Grave Number" 
+        error={errors.graveNo}
       />
 
       <Text style={styles.subsection}>Graveyard Location</Text>
@@ -133,6 +191,7 @@ const GraveRepairForm = () => {
         onChange={setGraveyard}
         radioColor={colors.secondryColor}
         direction="column"
+        error={errors.graveyard}
       />
 
       {/* Section 3: Repair Details */}
@@ -145,6 +204,7 @@ const GraveRepairForm = () => {
         multiline={true}
         style={styles.textAreaContainer}
         inputStyle={styles.textArea}
+        error={errors.repairDescription}
       />
 
       <SubmitButton onPress={handleSubmit} />
@@ -196,4 +256,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GraveRepairForm; 
+export default GraveRepairForm;
