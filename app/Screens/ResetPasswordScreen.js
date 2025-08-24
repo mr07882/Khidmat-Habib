@@ -13,6 +13,8 @@ const ResetPasswordScreen = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Step 1: Request OTP
   const handleRequestOTP = async () => {
@@ -241,25 +243,41 @@ const ResetPasswordScreen = ({ navigation }) => {
         editable={!loading}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="New Password"
-        placeholderTextColor="#999"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-        editable={!loading}
-      />
+      <View style={styles.passwordInputContainer}>
+        <TextInput
+          style={[styles.input, { marginBottom: 0, flex: 1 }]}
+          placeholder="New Password"
+          placeholderTextColor="#999"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry={!showNewPassword}
+          editable={!loading}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setShowNewPassword(!showNewPassword)}
+        >
+          <Icon name={showNewPassword ? "eye" : "eye-off"} size={24} color="#715054" />
+        </TouchableOpacity>
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm New Password"
-        placeholderTextColor="#999"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        editable={!loading}
-      />
+      <View style={styles.passwordInputContainer}>
+        <TextInput
+          style={[styles.input, { marginBottom: 0, flex: 1 }]}
+          placeholder="Confirm New Password"
+          placeholderTextColor="#999"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!showConfirmPassword}
+          editable={!loading}
+        />
+        <TouchableOpacity
+          style={styles.eyeButton}
+          onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+        >
+          <Icon name={showConfirmPassword ? "eye" : "eye-off"} size={24} color="#715054" />
+        </TouchableOpacity>
+      </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -359,6 +377,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
   },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 320,
+    marginBottom: 16,
+    backgroundColor: 'transparent',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    padding: 4,
+    zIndex: 2,
+    backgroundColor: 'transparent',
+  },
 });
 
-export default ResetPasswordScreen; 
+export default ResetPasswordScreen;

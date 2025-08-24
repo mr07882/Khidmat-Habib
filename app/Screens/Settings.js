@@ -301,7 +301,10 @@ const Settings = () => {
       setFamilyOtp('');
       setFamilyJCICInput('');
       setPendingFamilyJCIC('');
-      Alert.alert('Family member added!');
+      Alert.alert(
+        'Family Member Added Successfully',
+        'Please swipe through the membership cards on the home page to view the membership cards of your family members.'
+      );
       setIsFamilyLoading(false);
       // Reload family members
       await loadFamilyMembers();
@@ -383,22 +386,7 @@ const Settings = () => {
           </View>
         </View>
       </Modal>
-      {/* Family Members Section: Display Membership Cards */}
-      <View style={styles.familyMembersSection}>
-        <Text style={styles.sectionTitle}>Family Members</Text>
-        {isLoadingFamilyMembers ? (
-          <Text style={styles.loadingText}>Loading family members...</Text>
-        ) : familyMembers.length === 0 ? (
-          <Text style={styles.noFamilyText}>No family members added yet.</Text>
-        ) : (
-          familyMembers.map(jcic => (
-            <View key={jcic} style={{marginBottom: 16}}>
-              {/* MembershipCard for each family member */}
-              <MembershipCard userId={jcic} isFamilyMember={true} removalMode={false} />
-            </View>
-          ))
-        )}
-      </View>
+      
 
       <View style={settingStyles.subView}>
         <Text style={settingStyles.heading}>Notification Subscription</Text>

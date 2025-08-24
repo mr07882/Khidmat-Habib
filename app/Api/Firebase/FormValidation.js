@@ -1,10 +1,19 @@
 // Form validation utilities for nomination form
 
+// Validate CNIC number format (XXXXX-XXXXXXX-X)
+export const validateCNIC = (cnic) => {
+  const cnicRegex = /^\d{5}-\d{7}-\d{1}$/; // Pakistani CNIC format
+  if (!cnic || !cnicRegex.test(cnic)) {
+    return { isValid: false, error: 'Invalid CNIC format. Use XXXXX-XXXXXXX-X' };
+  }
+  return { isValid: true };
+};
+
 // Validate JCIC number format (16 digits)
 export const validateJCIC = (jcic) => {
-  if (!jcic) return { isValid: false, error: 'JCIC number is required' };
-  if (!/^\d{16}$/.test(jcic)) {
-    return { isValid: false, error: 'JCIC number must be exactly 16 digits' };
+  const jcicRegex = /^\d{16}$/; // 16-digit numeric
+  if (!jcic || !jcicRegex.test(jcic)) {
+    return { isValid: false, error: 'JCIC must be a 16-digit number' };
   }
   return { isValid: true };
 };
@@ -21,11 +30,9 @@ export const validateEmail = (email) => {
 
 // Validate phone number format
 export const validatePhone = (phone) => {
-  if (!phone) return { isValid: false, error: 'Phone number is required' };
-  // Pakistani phone number format: 03XXXXXXXXX
-  const phoneRegex = /^03\d{9}$/;
-  if (!phoneRegex.test(phone)) {
-    return { isValid: false, error: 'Please enter a valid Pakistani phone number (03XXXXXXXXX)' };
+  const phoneRegex = /^03\d{9}$/; // Pakistani phone number format
+  if (!phone || !phoneRegex.test(phone)) {
+    return { isValid: false, error: 'Invalid phone number. Use 03XXXXXXXXX' };
   }
   return { isValid: true };
 };

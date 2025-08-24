@@ -150,18 +150,18 @@ const BusinessPlace = () => {
                 </Text>
                 {/* Email clickable */}
                 <Text style={styles.modalText}>
-                  Email: {selectedBiz.contact?.email || selectedBiz.ownerEmail ? (
+                  Email: {selectedBiz.contact?.email ? (
                     <Text
                       style={{ color: '#1976d2', textDecorationLine: 'underline' }}
                       onPress={() => {
-                        const email = selectedBiz.contact?.email || selectedBiz.ownerEmail;
+                        const email = selectedBiz.contact?.email;
                         if (email) {
                           const url = `mailto:${email}`;
                           import('react-native').then(({ Linking }) => Linking.openURL(url));
                         }
                       }}
                     >
-                      {selectedBiz.contact?.email || selectedBizWW.ownerEmail}
+                      {selectedBiz.contact?.email}
                     </Text>
                   ) : (
                     '-'

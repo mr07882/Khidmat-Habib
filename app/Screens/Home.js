@@ -152,23 +152,21 @@ function Home(props) {
   // Remove family member handler using Firebase API
   const handleRemoveFamilyMember = async (familyJCIC) => {
     try {
-      // Remove from Firebase using the ProfileAPI
       const result = await removeFamilyMember(userId, familyJCIC);
-      
       if (result.success) {
-        // Remove from AsyncStorage only if Firebase deletion succeeded
-        try {
-          const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
-          let arr = stored ? JSON.parse(stored) : [];
-          arr = arr.filter(j => j !== familyJCIC);
-          await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
-          await AsyncStorage.removeItem(`membership_card_${familyJCIC}`);
-        } catch (e) {
-          console.log('Error updating local storage:', e);
-        }
-        
-        // Refresh list to reflect changes
+        // Update local storage
+        const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
+        let arr = stored ? JSON.parse(stored) : [];
+        arr = arr.filter(j => j !== familyJCIC);
+        await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
+        await AsyncStorage.removeItem(`membership_card_${familyJCIC}`);
+
+        // Refresh list and reset carousel to first card
         loadJcics();
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+        }, 500);
+
         setRemovalMode(prev => ({ ...prev, [familyJCIC]: false }));
         Alert.alert('Success', 'Family member removed successfully');
       } else {
@@ -181,6 +179,9 @@ function Home(props) {
       setRemovalMode(prev => ({ ...prev, [familyJCIC]: false }));
     }
   };
+
+  // Add ref for FlatList
+  const flatListRef = React.useRef(null);
 
   // Monitor network connectivity
   useEffect(() => {
@@ -260,6 +261,7 @@ function Home(props) {
             {!!props.allFlags && !!props.allFlags.mainPageBannerFlag && (
               // One-card-per-swipe carousel using FlatList
               <FlatList
+                ref={flatListRef}
                 data={jcicList}
                 keyExtractor={item => String(item)}
                 horizontal
@@ -298,9 +300,7 @@ function Home(props) {
                     justifyContent: 'center',
                     paddingHorizontal: 10
                   }}>
-                    <Text style={{color: '#666', textAlign: 'center'}}>
-                      No membership cards available. JCIC List: {jcicList.length}
-                    </Text>
+                   
                   </View>
                 )}
               />

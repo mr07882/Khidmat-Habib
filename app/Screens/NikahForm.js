@@ -148,9 +148,9 @@ const NikahForm = () => {
 
       <InputField label="Date of Birth" value={groomDOB} onChangeText={setGroomDOB} placeholder="DD-MM-YYYY" />
       
-      <Text style={styles.subsection}>Father's/Guardian Name</Text>
-      <InputField label="Name" value={groomFatherName} onChangeText={setGroomFatherName} placeholder="Father's Name" />
-      <InputField label="S/O" value={groomFatherSO} onChangeText={setGroomFatherSO} placeholder="Son of" />
+      
+      <InputField label="Father's/Guardian Name" value={groomFatherName} onChangeText={setGroomFatherName} placeholder="Father's Name Of Bridegroom" />
+      <InputField label="Grandfather’s Name" value={groomFatherSO} onChangeText={setGroomFatherSO} placeholder="Son of" />
       <InputField label="Surname" value={groomFatherSurname} onChangeText={setGroomFatherSurname} placeholder="Surname" />
       
       <InputField label="CNIC Number" value={groomCNIC} onChangeText={setGroomCNIC} placeholder="CNIC Number" keyboardType="numeric" />
@@ -187,9 +187,9 @@ const NikahForm = () => {
 
       <InputField label="Date of Birth" value={brideDOB} onChangeText={setBrideDOB} placeholder="DD-MM-YYYY" />
       
-      <Text style={styles.subsection}>Father's/Guardian Name</Text>
-      <InputField label="Name" value={brideFatherName} onChangeText={setBrideFatherName} placeholder="Father's Name" />
-      <InputField label="S/O" value={brideFatherSO} onChangeText={setBrideFatherSO} placeholder="Son of" />
+      
+      <InputField label="Father's/Guardian Name" value={brideFatherName} onChangeText={setBrideFatherName} placeholder="Father's Name Of Bride" />
+      <InputField label="Grandfather's Name" value={brideFatherSO} onChangeText={setBrideFatherSO} placeholder="Son of" />
       <InputField label="Surname" value={brideFatherSurname} onChangeText={setBrideFatherSurname} placeholder="Surname" />
       
       <InputField label="CNIC Number" value={brideCNIC} onChangeText={setBrideCNIC} placeholder="CNIC Number" keyboardType="numeric" />

@@ -979,3 +979,13 @@ export const submitDuplicateCardForm = async (jcic, formData) => {
     };
   }
 };
+
+// Submit FSC Form data to Firebase
+export const submitFSCForm = async (jcic, formData) => {
+  try {
+    const response = await set(ref(db, `fscForms/${jcic}`), formData);
+    return { success: true, response };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};

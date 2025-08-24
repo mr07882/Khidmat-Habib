@@ -216,7 +216,8 @@ const Profile = () => {
             </View>
             <Text style={styles.cardText}><Text style={styles.label}>Description:</Text> {biz.description}</Text>
             <Text style={styles.cardText}><Text style={styles.label}>Services:</Text> {biz.services}</Text>
-            <Text style={styles.cardText}><Text style={styles.label}>Contact:</Text> {biz.contact?.phone}, {biz.contact?.email}</Text>
+            <Text style={styles.cardText}><Text style={styles.label}>Contact Phone:</Text> {biz.contact?.phone}</Text>
+            <Text style={styles.cardText}><Text style={styles.label}>Email:</Text> {biz.contact?.email}</Text>
             <Text style={styles.cardText}><Text style={styles.label}>Address:</Text> {biz.address}</Text>
           </TouchableOpacity>
         ))}

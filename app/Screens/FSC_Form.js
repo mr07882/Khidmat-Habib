@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { colors } from '../Config/AppConfigData';
 import {
   InputField,
@@ -8,6 +8,12 @@ import {
   RadioGroup,
   Checkbox,
 } from '../Components/FormElements';
+import { submitFSCForm } from '../Api/Firebase/FormAPI';
+import { validateRequired, validateJCIC, validateEmail, validatePhone } from '../Api/Firebase/FormValidation';
+import { uploadImageToCloudinary } from '../Api/Firebase/CloudinaryService';
+import { getMemberByJCIC } from '../Api/Firebase/MemberInformation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 
 const facilitiesList = [
   { label: 'Swimming', value: 'swimming' },
@@ -65,16 +71,113 @@ const FSC_Form = () => {
 
   // Section 4: Terms
   const [agreed, setAgreed] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [userJCIC, setUserJCIC] = useState(null);
+  const navigation = useNavigation();
+  const scrollRef = useRef();
 
-  const handleSubmit = () => {
-    const data = {
-      applicant: { name, gender, fatherName, surname, address, cnic, jcic, cellNo, telNo, email, photo },
+  useEffect(() => {
+    const getUserJCIC = async () => {
+      try {
+        const storedJCIC = await AsyncStorage.getItem('JCIC');
+        setUserJCIC(storedJCIC);
+      } catch (error) {
+        console.error('Failed to retrieve JCIC:', error);
+      }
+    };
+    getUserJCIC();
+  }, []);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!validateRequired(name).isValid) newErrors.name = 'Name is required';
+    if (!validateRequired(fatherName).isValid) newErrors.fatherName = "Father's name is required";
+    if (!validateRequired(surname).isValid) newErrors.surname = 'Surname is required';
+    if (!validateRequired(address).isValid) newErrors.address = 'Address is required';
+    if (!validateJCIC(jcic).isValid) newErrors.jcic = 'Invalid JCIC number';
+    if (!validatePhone(cellNo).isValid) newErrors.cellNo = 'Invalid cell number';
+    if (email && !validateEmail(email).isValid) newErrors.email = 'Invalid email address';
+    if (!photo) newErrors.photo = 'Photo is required';
+    if (selectedFacilities.length === 0) newErrors.facilities = 'At least one facility must be selected';
+    if (!validateRequired(cnic).isValid) newErrors.cnic = 'CNIC number is required';
+    if (!validateRequired(email).isValid) {
+      newErrors.email = 'Email is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const scrollToError = (errors, scrollRef) => {
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const firstErrorKey = errorKeys[0];
+      const errorPositions = {
+        name: 0,
+        fatherName: 1,
+        surname: 2,
+        address: 3,
+        cnic: 4,
+        jcic: 5,
+        cellNo: 6,
+        email: 7,
+        photo: 8,
+        facilities: 9,
+      };
+      const position = errorPositions[firstErrorKey];
+      if (position !== undefined) {
+        scrollRef.current.scrollTo({ y: position * 100, animated: true });
+      }
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      scrollToError(errors, scrollRef);
+      return;
+    }
+
+    if (!userJCIC) {
+      alert('User not authenticated. Please login again.');
+      return;
+    }
+
+    const uploadedPhoto = await uploadImageToCloudinary(photo);
+    if (!uploadedPhoto.success) {
+      setErrors((prev) => ({ ...prev, photo: 'Failed to upload photo' }));
+      return;
+    }
+
+    const formData = {
+      name,
+      fatherName,
+      surname,
+      address,
+      cnic,
+      jcic: userJCIC, // Use logged-in member's JCIC
+      cellNo,
+      telNo,
+      email,
+      gender,
+      photo: uploadedPhoto.url,
       facilities: selectedFacilities,
-      familyMembers,
+      familyMembers: familyMembers.length > 0 ? familyMembers : null, // Save family members if provided
       agreed,
     };
-    console.log('FSC Form Submission:', data);
-    // TODO: Submit to backend or handle data
+
+    const response = await submitFSCForm(userJCIC, formData);
+    if (!response.success) {
+      alert('Failed to submit form. Please try again.');
+    } else {
+      Alert.alert(
+        'Success',
+        'Nomination form submitted successfully! You will be notified about the status of your application.',
+        [
+          { text: 'OK', onPress: () => navigation.navigate('FormsScreen') },
+        ]
+      );
+    }
   };
 
   const genderOptions = [
@@ -83,7 +186,7 @@ const FSC_Form = () => {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
       <Text style={styles.title}>Fatimiyah Sports Complex Membership Form</Text>
       <Text style={styles.infoText}>
         This form is used to register individuals and their families for membership at the Fatimiyah Sports Complex, which is owned and managed by Khoja (Pirhai) Shia Isna Asheri Jamaat, Karachi.
@@ -91,7 +194,7 @@ const FSC_Form = () => {
 
       {/* Section 1: Applicant Details */}
       <Text style={styles.section}>Section 1: Applicant Details</Text>
-      <InputField label="Name" value={name} onChangeText={setName} placeholder="Enter your full name" />
+      <InputField label="Name" value={name} onChangeText={setName} placeholder="Enter your full name" error={errors.name} />
       <RadioGroup
         options={genderOptions.map(opt => ({
           label: <Text style={{ color: colors.secondryColor }}>{opt.label}</Text>,
@@ -101,15 +204,22 @@ const FSC_Form = () => {
         onChange={setGender}
         radioColor={colors.secondryColor}
       />
-      <InputField label="Father/Husband's Name" value={fatherName} onChangeText={setFatherName} placeholder="Enter the name of your father/husband" />
-      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Enter your surname" />
-      <InputField label="Address" value={address} onChangeText={setAddress} placeholder="Enter your complete address" multiline />
-      <InputField label="CNIC No" value={cnic} onChangeText={setCnic} placeholder="XXXXX-XXXXXXX-X" keyboardType="numeric" />
-      <InputField label="JCIC No" value={jcic} onChangeText={setJcic} placeholder="Enter your 16-digit JCIC number" />
-      <InputField label="Cell No" value={cellNo} onChangeText={setCellNo} placeholder="03XXXXXXXXX" keyboardType="phone-pad" />
+      <InputField label="Father/Husband's Name" value={fatherName} onChangeText={setFatherName} placeholder="Enter the name of your father/husband" error={errors.fatherName} />
+      <InputField label="Surname" value={surname} onChangeText={setSurname} placeholder="Enter your surname" error={errors.surname} />
+      <InputField label="Address" value={address} onChangeText={setAddress} placeholder="Enter your complete address" multiline error={errors.address} />
+      <InputField
+        label="CNIC No"
+        value={cnic}
+        onChangeText={setCnic}
+        placeholder="XXXXX-XXXXXXX-X"
+        keyboardType="numeric"
+        error={errors.cnic} // Display validation error
+      />
+      <InputField label="JCIC No" value={jcic} onChangeText={setJcic} placeholder="Enter your 16-digit JCIC number" error={errors.jcic} />
+      <InputField label="Cell No" value={cellNo} onChangeText={setCellNo} placeholder="03XXXXXXXXX" keyboardType="phone-pad" error={errors.cellNo} />
       <InputField label="Tel No" value={telNo} onChangeText={setTelNo} placeholder="021XXXXXXX" keyboardType="phone-pad" />
-      <InputField label="Email" value={email} onChangeText={setEmail} placeholder="Email Address" keyboardType="email-address" />
-      <PhotoUpload photo={photo} setPhoto={setPhoto} />
+      <InputField label="Email" value={email} onChangeText={setEmail} placeholder="Email Address" keyboardType="email-address" error={errors.email} />
+      <PhotoUpload photo={photo} setPhoto={setPhoto} error={errors.photo} />
 
       {/* Section 2: Facilities */}
       <Text style={styles.section}>Section 2: Facilities</Text>
@@ -137,6 +247,7 @@ const FSC_Form = () => {
         <Text style={styles.pointer}>• Payment will be for whole family.</Text>
         <Text style={styles.pointer}>• Minimum recharge for prepaid card is fixed at Rs. 200/‐</Text>
       </View>
+      {errors.facilities && <Text style={styles.errorText}>{errors.facilities}</Text>}
 
       {/* Section 3: Family Members */}
       <Text style={styles.section}>Section 3: Details Of Family Members</Text>
@@ -303,6 +414,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 18,
   },
+  errorText: {
+    color: 'red',
+    fontSize: 12,
+    marginBottom: 8,
+  },
 });
 
-export default FSC_Form; 
+export default FSC_Form;
