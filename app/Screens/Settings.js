@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, useWindowDimensions, TouchableOpacity, Modal, TextInput, Alert, StyleSheet} from 'react-native';
+import {View, useWindowDimensions, TouchableOpacity, TextInput, Alert, StyleSheet} from 'react-native';
 import database from '@react-native-firebase/database';
 import ToggleSwitch from 'toggle-switch-react-native';
 import Loader from '../Components/Loader';
@@ -25,8 +25,6 @@ import { sendOTPEmail } from '../Api/Firebase/emailService';
 import {logoutUser} from '../Functions/Functions';
 import {setUserId} from '../Redux/actions/authAction';
 import { useDispatch } from 'react-redux';
-
-const FAMILY_STORAGE_KEY = 'family_jcics';
 
 const Settings = () => {
   const [topicData, setTopicData] = useState({});
@@ -55,49 +53,8 @@ const Settings = () => {
   }, []);
 
   // Load family members on component mount
-  useEffect(() => {
-    loadFamilyMembers();
-  }, []);
-
   const loadFamilyMembers = async () => {
-    setIsLoadingFamilyMembers(true);
-    try {
-      const res = await fetch(`${API_URL}/family/${userJCIC}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFamilyMembers(data.familyMembers || []);
-      }
-    } catch (e) {
-      console.log('Error loading family members:', e);
-    } finally {
-      setIsLoadingFamilyMembers(false);
-    }
-  } // End of handleVerifyFamilyOtp
-
-  const removeFamilyMember = async (familyJCIC) => {
-    try {
-      const res = await fetch(`${API_URL}/family/${userJCIC}/remove/${familyJCIC}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      if (res.ok) {
-        // Remove from local storage
-        let stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
-        let arr = stored ? JSON.parse(stored) : [];
-        arr = arr.filter(j => j !== familyJCIC);
-        await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
-        
-        // Reload family members
-        await loadFamilyMembers();
-        Alert.alert('Success', 'Family member removed successfully');
-      } else {
-        const data = await res.json();
-        Alert.alert('Error', data.error || 'Failed to remove family member');
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Network error');
-    }
+    // Implement the logic to load family members if needed
   };
 
   const getTopics = async key => {
@@ -223,171 +180,13 @@ const Settings = () => {
     }
   };
 
-  const handleAddFamilyMember = async () => {
-    setFamilyApiError('');
-    if (!familyJCICInput) {
-      setFamilyApiError('Please enter JCIC number');
-      return;
-    }
-    // Check if already added (local check)
-    try {
-      const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
-      let arr = stored ? JSON.parse(stored) : [];
-      if (arr.includes(familyJCICInput)) {
-        setFamilyApiError('Family member already added');
-        return;
-      }
-    } catch (e) {}
-    setIsFamilyLoading(true);
-    try {
-      // Fetch family member details from Firebase
-      const response = await getMemberByJCIC(familyJCICInput);
-      if (!response.success || !response.data) {
-        setFamilyApiError('Family member not found');
-        setIsFamilyLoading(false);
-        return;
-      }
-      const email = response.data.Email;
-      if (!email) {
-        setFamilyApiError('Family member does not have an email');
-        setIsFamilyLoading(false);
-        return;
-      }
-      // Generate and store OTP in Firebase
-      const otp = generateOTP();
-      await storeOTP(familyJCICInput, otp);
-      await sendOTPEmail(email, otp);
-      setPendingFamilyJCIC(familyJCICInput);
-      setFamilyModalVisible(false);
-      setFamilyOtpModal(true);
-    } catch (e) {
-      setFamilyApiError('Error sending OTP');
-    } finally {
-      setIsFamilyLoading(false);
-    }
-  };
-
-  const handleVerifyFamilyOtp = async () => {
-    setFamilyOtpError('');
-    setFamilyOtpError('');
-    if (!familyOtp) {
-      setFamilyOtpError('Please enter OTP');
-      return;
-    }
-    setIsFamilyLoading(true);
-    try {
-      // Verify OTP from Firebase
-      const result = await verifyOTP(pendingFamilyJCIC, familyOtp);
-      if (!result.success) {
-        setFamilyOtpError(result.error || 'Invalid OTP');
-        setIsFamilyLoading(false);
-        return;
-      }
-      // Add family JCIC to logged-in user's FamilyMembers array in Firebase
-      const memberRef = ref(db, `Members/${userJCIC}`);
-      const snapshot = await get(memberRef);
-      let memberData = snapshot.exists() ? snapshot.val() : {};
-      let familyList = Array.isArray(memberData.FamilyMembers) ? memberData.FamilyMembers : [];
-      if (!familyList.includes(pendingFamilyJCIC)) {
-        familyList.push(pendingFamilyJCIC);
-        await update(memberRef, { FamilyMembers: familyList });
-      }
-      // Update local storage for offline support
-      let stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
-      let arr = stored ? JSON.parse(stored) : [];
-      if (!arr.includes(pendingFamilyJCIC)) arr.push(pendingFamilyJCIC);
-      await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
-      setFamilyOtpModal(false);
-      setFamilyOtp('');
-      setFamilyJCICInput('');
-      setPendingFamilyJCIC('');
-      Alert.alert(
-        'Family Member Added Successfully',
-        'Please swipe through the membership cards on the home page to view the membership cards of your family members.'
-      );
-      setIsFamilyLoading(false);
-      // Reload family members
-      await loadFamilyMembers();
-    } catch (e) {
-      setFamilyOtpError('Error verifying OTP or updating family list');
-      setIsFamilyLoading(false);
-    }
-  };
-     
-
   if (loading) {
     return <Loader bgColor="#F2F2F2" />;
   }
 
   return (
     <View style={settingStyles.mainView}>
-      {/* Add Family Member Card */}
-      <TouchableOpacity
-        style={styles.familyCard}
-        onPress={() => setFamilyModalVisible(true)}>
-        <Text style={styles.familyCardTitle}>Add Family Member</Text>
-        <Text style={styles.familyCardDesc}>Add a family member to your account and access their membership card.</Text>
-      </TouchableOpacity>
-
-      {/* Modal for JCIC input */}
-      <Modal
-        visible={familyModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setFamilyModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter Family Member JCIC</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="JCIC Number"
-              value={familyJCICInput}
-              onChangeText={setFamilyJCICInput}
-              keyboardType="numeric"
-            />
-            {familyApiError ? <Text style={styles.error}>{familyApiError}</Text> : null}
-            <TouchableOpacity style={styles.modalButton} onPress={handleAddFamilyMember} disabled={isFamilyLoading}>
-              <Text style={styles.modalButtonText}>{isFamilyLoading ? 'Please wait...' : 'Okay'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setFamilyModalVisible(false)} style={styles.modalCancel}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal for OTP input */}
-      <Modal
-        visible={familyOtpModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setFamilyOtpModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Enter OTP</Text>
-            <Text style={styles.modalSubtitle}>
-              Please enter the OTP sent to the family member's email/phone
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter OTP"
-              value={familyOtp}
-              onChangeText={setFamilyOtp}
-              keyboardType="numeric"
-              maxLength={6}
-            />
-            {familyOtpError ? <Text style={styles.error}>{familyOtpError}</Text> : null}
-            <TouchableOpacity style={styles.modalButton} onPress={handleVerifyFamilyOtp} disabled={isFamilyLoading}>
-              <Text style={styles.modalButtonText}>{isFamilyLoading ? 'Verifying...' : 'Verify OTP'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setFamilyOtpModal(false)} style={styles.modalCancel}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-      
-
+      {/* Notification Subscription Section */}
       <View style={settingStyles.subView}>
         <Text style={settingStyles.heading}>Notification Subscription</Text>
         {!permission && (
@@ -432,6 +231,7 @@ const Settings = () => {
           />
         )}
       </View>
+
       <TouchableOpacity
         style={settingStyles.logoutButton}
         onPress={handleLogout}>
@@ -442,28 +242,6 @@ const Settings = () => {
 };
 
 const styles = StyleSheet.create({
-  familyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 18,
-    margin: 16,
-    marginBottom: 0,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  familyCardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#715054',
-    marginBottom: 4,
-  },
-  familyCardDesc: {
-    fontSize: 14,
-    color: '#444',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -524,64 +302,6 @@ const styles = StyleSheet.create({
   error: {
     color: 'red',
     marginBottom: 6,
-  },
-  familyMembersSection: {
-    marginTop: 16,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#715054',
-    marginBottom: 8,
-  },
-  loadingText: {
-    textAlign: 'center',
-    color: '#444',
-    fontStyle: 'italic',
-  },
-  noFamilyText: {
-    textAlign: 'center',
-    color: '#444',
-    fontStyle: 'italic',
-  },
-  familyMemberItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-  },
-  familyMemberInfo: {
-    flex: 1,
-  },
-  familyMemberName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  familyMemberJCIC: {
-    fontSize: 14,
-    color: '#666',
-  },
-  removeButton: {
-    backgroundColor: '#ff6b6b',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  removeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
 });
 

@@ -9,6 +9,7 @@ import {
   updateBusinessByIndex, 
   deleteMemberBusiness
 } from '../Api/Firebase/ProfileAPI';
+import FamilyMemberManager from '../Components/FamilyMemberManager';
 
 const Profile = () => {
   const route = useRoute();
@@ -172,6 +173,10 @@ const Profile = () => {
     setEditBizIndex(null);
   };
 
+  const loadFamilyMembers = async () => {
+    // Implement the logic to load family members if needed
+  };
+
   if (loading) return <View style={styles.center}><Text>Loading...</Text></View>;
   if (!user) return <View style={styles.center}><Text>No user data found.</Text></View>;
   if (!jcicState) return <View style={styles.center}><Text>No JCIC provided. Please login again.</Text></View>;
@@ -196,6 +201,12 @@ const Profile = () => {
         <View style={styles.detailRow}><Text style={styles.label}>Phone:</Text><Text style={styles.value}>{user.number}</Text></View>
         <View style={styles.detailRow}><Text style={styles.label}>JCIC:</Text><Text style={styles.value}>{user.jcic}</Text></View>
         <View style={styles.detailRow}><Text style={styles.label}>Email:</Text><Text style={styles.value}>{user.email}</Text></View>
+      </View>
+
+      {/* Family Members */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Family Members</Text>
+        <FamilyMemberManager userJCIC={jcicState} loadFamilyMembers={loadFamilyMembers} />
       </View>
 
       {/* Business Details */}
@@ -301,6 +312,8 @@ const Profile = () => {
         </View>
       </Modal>
 
+      
+
       {/* Photo Modal */}
       <Modal visible={photoModal} transparent animationType="fade" onRequestClose={() => setPhotoModal(false)}>
         <View style={styles.modalBg}>
@@ -361,19 +374,20 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   cancelButton: { 
-    backgroundColor: '#6c757d', 
+    backgroundColor: '#fff', 
     borderRadius: 5, 
     paddingHorizontal: 20, 
     paddingVertical: 10,
-    marginRight: 10
+    marginRight: 10,
+    borderColor: '#000'
   },
   cancelButtonText: { 
-    color: '#fff', 
+    color: colors.secondryColor, 
     fontWeight: 'bold',
     fontSize: 14
   },
   updateButton: { 
-    backgroundColor: '#4B2E2B', 
+    backgroundColor: colors.secondryColor, 
     borderRadius: 5, 
     paddingHorizontal: 20, 
     paddingVertical: 10 
