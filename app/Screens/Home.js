@@ -37,6 +37,7 @@ function Home(props) {
   const [localUserId, setLocalUserId] = useState(null); // fallback JCIC
   const [jcicLoading, setJcicLoading] = useState(true); // loading state for JCIC
   const [removalMode, setRemovalMode] = useState({}); // { [jcic]: true }
+  const [autoFlipIndex, setAutoFlipIndex] = useState(null); // index of the card to auto-flip
   const dispatch = useDispatch();
   const isFocused = useIsFocused();
   const route = useRoute();
@@ -225,6 +226,19 @@ function Home(props) {
     dispatch(updateDonationCart([]));
   }, []);
 
+  // Scroll to newly added family member's card if applicable
+  useEffect(() => {
+    if (route.params?.newFamilyMemberJCIC) {
+      const index = jcicList.findIndex(jcic => jcic === route.params.newFamilyMemberJCIC);
+      if (index !== -1 && flatListRef.current) {
+        flatListRef.current.scrollToIndex({ index, animated: true });
+        setTimeout(() => {
+          setAutoFlipIndex(index);
+        }, 500);
+      }
+    }
+  }, [route.params?.newFamilyMemberJCIC, jcicList]);
+
   // In the render, show loading indicator if JCIC is loading or not available
   if (jcicLoading || !userId) {
     return (
@@ -274,7 +288,7 @@ function Home(props) {
                   justifyContent: 'center'
                 }}
                 style={{ width: '100%' }}
-                renderItem={({ item }) => {
+                renderItem={({ item, index }) => {
                   const isFamilyMember = item !== userId;
                   return (
                     <View style={{ 
@@ -289,9 +303,19 @@ function Home(props) {
                         removalMode={removalMode[item]} 
                         onLongPress={() => setRemovalMode({ [item]: true })} 
                         onRemoveCrossPress={() => confirmAndRemoveFamilyMember(item)} 
+                        autoFlip={index === autoFlipIndex} 
                       />
                     </View>
                   );
+                }}
+                getItemLayout={(data, index) => ({
+                  length: Dimensions.get('window').width,
+                  offset: Dimensions.get('window').width * index,
+                  index,
+                })}
+                onScrollToIndexFailed={(info) => {
+                  console.warn('Scroll to index failed:', info);
+                  flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: true });
                 }}
                 ListEmptyComponent={() => (
                   <View style={{ 

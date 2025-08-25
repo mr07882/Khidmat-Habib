@@ -19,7 +19,7 @@ import { colors } from '../Config/AppConfigData';
 
 const FAMILY_STORAGE_KEY = 'family_jcics';
 
-const FamilyMemberManager = ({ userJCIC, loadFamilyMembers }) => {
+const FamilyMemberManager = ({ userJCIC, loadFamilyMembers, navigation }) => {
   const [familyModalVisible, setFamilyModalVisible] = useState(false);
   const [familyJCICInput, setFamilyJCICInput] = useState('');
   const [familyOtp, setFamilyOtp] = useState('');
@@ -49,6 +49,10 @@ const FamilyMemberManager = ({ userJCIC, loadFamilyMembers }) => {
       setFamilyApiError('Please enter JCIC number');
       return;
     }
+    if (familyJCICInput === userJCIC) {
+      setFamilyApiError('You cannot add yourself as a family member');
+      return;
+    }
     try {
       const stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
       let arr = stored ? JSON.parse(stored) : [];
@@ -61,7 +65,7 @@ const FamilyMemberManager = ({ userJCIC, loadFamilyMembers }) => {
     try {
       const response = await getMemberByJCIC(familyJCICInput);
       if (!response.success || !response.data) {
-        setFamilyApiError('Family member not found');
+        setFamilyApiError('Member Not found');
         setIsFamilyLoading(false);
         return;
       }
@@ -94,10 +98,11 @@ const FamilyMemberManager = ({ userJCIC, loadFamilyMembers }) => {
     try {
       const result = await verifyOTP(pendingFamilyJCIC, familyOtp);
       if (!result.success) {
-        setFamilyOtpError(result.error || 'Invalid OTP');
+        setFamilyOtpError('Invalid OTP');
         setIsFamilyLoading(false);
         return;
       }
+
       const memberRef = ref(db, `Members/${userJCIC}`);
       const snapshot = await get(memberRef);
       let memberData = snapshot.exists() ? snapshot.val() : {};
@@ -106,10 +111,15 @@ const FamilyMemberManager = ({ userJCIC, loadFamilyMembers }) => {
         familyList.push(pendingFamilyJCIC);
         await update(memberRef, { FamilyMembers: familyList });
       }
+
       let stored = await AsyncStorage.getItem(FAMILY_STORAGE_KEY);
       let arr = stored ? JSON.parse(stored) : [];
-      if (!arr.includes(pendingFamilyJCIC)) arr.push(pendingFamilyJCIC);
-      await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
+      if (!arr.includes(pendingFamilyJCIC)) {
+        arr.push(pendingFamilyJCIC);
+        await AsyncStorage.setItem(FAMILY_STORAGE_KEY, JSON.stringify(arr));
+      }
+
+      setFamilyMembers(arr);
       setFamilyOtpModal(false);
       setFamilyOtp('');
       setFamilyJCICInput('');
@@ -120,8 +130,11 @@ const FamilyMemberManager = ({ userJCIC, loadFamilyMembers }) => {
       );
       setIsFamilyLoading(false);
       await loadFamilyMembers();
+
+      // Navigate to Home screen and pass the new family member JCIC
+      navigation.navigate('Home', { newFamilyMemberJCIC: pendingFamilyJCIC });
     } catch (e) {
-      setFamilyOtpError('Error verifying OTP or updating family list');
+      setFamilyOtpError('Error verifying OTP');
       setIsFamilyLoading(false);
     }
   };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity, Animated, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity, Animated, Modal } from 'react-native';
 import { colors } from '../Config/AppConfigData';
 const logo = require('../../assets/logo.webp');
 const secSign = require('../../assets/SecSign.png');
@@ -14,13 +14,14 @@ const formatJCIC = jcic => jcic ? String(jcic).replace(/(\d{4})(?=\d)/g, '$1 ') 
 const CARD_WIDTH = 320; // You can adjust this for your app's layout
 const CARD_HEIGHT = Math.round(CARD_WIDTH * 54 / 85.6);
 
-const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRemoveCrossPress }) => {
+const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRemoveCrossPress, autoFlip }) => {
   const [member, setMember] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const animatedValue = useRef(new Animated.Value(0)).current;
   const imagePressedRef = useRef(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Helper to check if FaceID is a valid URL
   const isValidImageUrl = url => typeof url === 'string' && url.startsWith('http');
@@ -144,6 +145,16 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
     }).start();
   }, [flipped]);
 
+  useEffect(() => {
+    if (autoFlip) {
+      Animated.timing(animatedValue, {
+        toValue: flipped ? 0 : 180,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start(() => setFlipped(!flipped));
+    }
+  }, [autoFlip]);
+
   const frontInterpolate = animatedValue.interpolate({
     inputRange: [0, 180],
     outputRange: ['0deg', '180deg'],
@@ -189,7 +200,13 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
       </View>
       <View style={styles.infoRow}>
         <View style={{alignItems: 'center', justifyContent: 'flex-start', width: 70}}>
-          <TouchableOpacity>
+          <Pressable
+            onPressIn={() => { imagePressedRef.current = true; }}
+            onPressOut={() => { setTimeout(() => { imagePressedRef.current = false; }, 80); }}
+            onPress={() => { setShowImageModal(true); }}
+            android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
+            style={{ borderRadius: 4 }}
+          >
             <Image
               source={(!imageError && isValidImageUrl(member.picture))
                 ? { uri: member.picture }
@@ -199,21 +216,29 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
                 setImageError(true);
               }}
             />
-          </TouchableOpacity>
+          </Pressable>
           <View style={styles.signatureBlock}>
             <Image source={secSign} style={styles.secSign} />
             <View style={styles.hr} />
             <Text style={styles.secretaryText}>Hon. Secretary</Text>
           </View>
         </View>
-        <View style={styles.infoCol}>
+        <Pressable
+          style={styles.infoCol}
+          onPress={() => {
+            // prevent flip when image was just pressed
+            if (imagePressedRef.current) return;
+            setFlipped(f => !f);
+          }}
+          android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
+        >
           <Text style={[styles.cardHeading, {textAlign: 'center'}]}>MEMBERSHIP CARD</Text>
           <Text style={[styles.jcic, {textAlign: 'center'}]}>{formatJCIC(member.jcic)}</Text>
           <Text style={styles.infoText}><Text style={styles.infoLabel}>Name:</Text> {member.name}</Text>
           <Text style={styles.infoText}><Text style={styles.infoLabel}>Father/Husband:</Text> {member.fatherHusband}</Text>
           <Text style={styles.infoText}><Text style={styles.infoLabel}>Surname:</Text> {member.surname}</Text>
           <Text style={styles.infoText}><Text style={styles.infoLabel}>CNIC:</Text> {member.cnic}</Text>
-        </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -222,14 +247,24 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
   const CardBack = (
     <View style={[styles.cardContent, styles.backCardContent, { width: CARD_WIDTH, height: CARD_HEIGHT }]}> 
       <Image source={logo} style={styles.bgLogo} pointerEvents="none" />
-      <View style={{alignItems: 'center', marginBottom: 10, width: '100%'}}>
-        <Text style={[styles.jcic, {textAlign: 'center', marginBottom: 8, alignSelf: 'center', width: '100%'}]}>{formatJCIC(member.jcic)}</Text>
-      </View>
-      <View style={{marginLeft: 10}}>
-  <Text style={styles.infoText}><Text style={styles.infoLabel}>Blood Group:</Text> {member.bloodGroup || '-'}</Text>
-  <Text style={styles.infoText}><Text style={styles.infoLabel}>DOB:</Text> {formatDate(member.dob)}</Text>
-  <Text style={styles.infoText}><Text style={styles.infoLabel}>Islamic DOB:</Text> {member.islamicDOB || '-'}</Text>
-      </View>
+      <View style={{flexDirection: 'row', width: '100%'}}>
+            {/* left spacer to match profile-photo column width so taps there won't flip */}
+            <View style={{width: 10}} />
+            <Pressable
+              style={{flex: 1, paddingLeft: 1}}
+              onPress={() => setFlipped(f => !f)}
+              android_ripple={{ color: 'rgba(0,0,0,0.05)' }}
+            >
+              <View style={{alignItems: 'center', marginBottom: 10, width: '100%'}}>
+                <Text style={[styles.jcic, {textAlign: 'center', marginBottom: 8, alignSelf: 'center', width: '100%'}]}>{formatJCIC(member.jcic)}</Text>
+              </View>
+              <View>
+                <Text style={styles.infoText}><Text style={styles.infoLabel}>Blood Group:</Text> {member.bloodGroup || '-'}</Text>
+                <Text style={styles.infoText}><Text style={styles.infoLabel}>DOB:</Text> {formatDate(member.dob)}</Text>
+                <Text style={styles.infoText}><Text style={styles.infoLabel}>Islamic DOB:</Text> {member.islamicDOB || '-'}</Text>
+              </View>
+            </Pressable>
+          </View>
       <View style={{flex: 1}} />
       <View style={styles.qrRow}>
         <Text style={{fontSize: 11, color: '#888', textAlign: 'center', marginTop: 20, flex: 1}}>
@@ -261,27 +296,37 @@ const MembershipCard = ({ userId, isFamilyMember, removalMode, onLongPress, onRe
   );
 
   return (
-    <TouchableWithoutFeedback
-      onPress={() => {
-        if (imagePressedRef.current) {
-          return;
-        }
-        setFlipped(f => !f);
-      }}
+    <Pressable
       onLongPress={isFamilyMember ? onLongPress : undefined}
       delayLongPress={400}
     >
       <View style={{ opacity: removalMode && isFamilyMember ? 0.5 : 1 }}>
         {/* Cross button at top right if in removal mode */}
         {isFamilyMember && removalMode ? RemovalOverlay : null}
-        <Animated.View style={[styles.card, {backfaceVisibility: 'hidden', transform: [{rotateY: frontInterpolate}]}]}>
+        <Animated.View pointerEvents={flipped ? 'none' : 'auto'} style={[styles.card, {backfaceVisibility: 'hidden', transform: [{rotateY: frontInterpolate}]}]}>
           {CardFront}
         </Animated.View>
-        <Animated.View style={[styles.card, styles.cardBack, {position: 'absolute', top: 0, left: 0, right: 0, backfaceVisibility: 'hidden', transform: [{rotateY: backInterpolate}]}]}>
+        <Animated.View pointerEvents={flipped ? 'auto' : 'none'} style={[styles.card, styles.cardBack, {position: 'absolute', top: 0, left: 0, right: 0, backfaceVisibility: 'hidden', transform: [{rotateY: backInterpolate}]}]}>
           {CardBack}
         </Animated.View>
+          {/* Image preview modal */}
+          <Modal
+            transparent={true}
+            visible={showImageModal}
+            animationType="fade"
+            onRequestClose={() => setShowImageModal(false)}
+          >
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowImageModal(false)}>
+              <View style={styles.modalContent}>
+                <Image
+                  source={(!imageError && isValidImageUrl(member.picture)) ? { uri: member.picture } : require('../../assets/femaleDummy.webp')}
+                  style={{ width: CARD_WIDTH * 0.9, height: CARD_WIDTH * 0.9, resizeMode: 'contain' }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
       </View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 };
 
@@ -362,10 +407,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
+  backgroundColor: 'transparent',
+  borderRadius: 12,
+  padding: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
   },
   infoCol: {
     flex: 1,

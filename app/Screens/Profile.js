@@ -245,7 +245,7 @@ const Profile = () => {
       {/* Family Members */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Family Members</Text>
-        <FamilyMemberManager userJCIC={jcicState} loadFamilyMembers={loadFamilyMembers} />
+        <FamilyMemberManager userJCIC={jcicState} loadFamilyMembers={loadFamilyMembers} navigation={navigation} />
       </View>
 
       {/* Business Details */}

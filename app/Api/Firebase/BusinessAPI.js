@@ -1,5 +1,6 @@
 import { db } from '../../Config/firebase';
 import { ref, get } from 'firebase/database';
+import stringSimilarity from 'string-similarity';
 
 // Fetch all businesses from all members in Firebase
 export const getAllBusinesses = async () => {
@@ -32,13 +33,45 @@ export const searchBusinesses = async (search = '', workDesc = '') => {
   const allBusinesses = await getAllBusinesses();
   const lowerSearch = search.toLowerCase();
   const lowerWorkDesc = workDesc.toLowerCase();
-  return allBusinesses.filter(biz => {
-    const nameMatch = biz.name && biz.name.toLowerCase().includes(lowerSearch);
-    const ownerMatch = biz.ownerName && biz.ownerName.toLowerCase().includes(lowerSearch);
-    const descMatch = biz.description && biz.description.toLowerCase().includes(lowerWorkDesc);
-    return (
-      (!search || nameMatch || ownerMatch) &&
-      (!workDesc || descMatch)
-    );
+
+  // Tokenize the search query
+  const searchTokens = lowerSearch.split(' ');
+  const workDescTokens = lowerWorkDesc.split(' ');
+
+  // Enhanced filtering with ranking
+  const rankedBusinesses = allBusinesses.map(biz => {
+    let score = 0;
+
+    // Match business name
+    if (biz.name) {
+      const nameMatch = stringSimilarity.compareTwoStrings(biz.name.toLowerCase(), lowerSearch);
+      score += nameMatch * 3; // Higher weight for name matches
+    }
+
+    // Match owner name
+    if (biz.ownerName) {
+      const ownerMatch = stringSimilarity.compareTwoStrings(biz.ownerName.toLowerCase(), lowerSearch);
+      score += ownerMatch * 3; // Medium weight for owner matches
+    }
+
+    // Match description
+    if (biz.description) {
+      const descMatch = stringSimilarity.compareTwoStrings(biz.description.toLowerCase(), lowerWorkDesc);
+      score += descMatch * 2; // Medium weight for description matches
+    }
+
+    // Match services
+    if (biz.services) {
+      const servicesMatch = workDescTokens.some(token => biz.services.toLowerCase().includes(token));
+      if (servicesMatch) score += 1; // Lower weight for service matches
+    }
+
+    return { ...biz, score };
   });
+
+  // Sort businesses by score in descending order
+  const sortedBusinesses = rankedBusinesses.sort((a, b) => b.score - a.score);
+
+  // Filter out businesses with zero score
+  return sortedBusinesses.filter(biz => biz.score > 0);
 };
