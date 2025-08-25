@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { colors } from '../Config/AppConfigData';
 import { 
   getMemberProfile, 
@@ -13,29 +14,43 @@ import FamilyMemberManager from '../Components/FamilyMemberManager';
 
 const Profile = () => {
   const route = useRoute();
+  const navigation = useNavigation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [jcicState, setJcicState] = useState(null);
-
-  // Business modal/form
-  const [bizModal, setBizModal] = useState(false);
-  const [bizForm, setBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-  const [editBizIndex, setEditBizIndex] = useState(null);
-  const [editBizForm, setEditBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-
-  const [photoModal, setPhotoModal] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    const getJCIC = async () => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
         const jcicParam = route.params?.JCIC || (await AsyncStorage.getItem('JCIC'));
         if (jcicParam) {
           setJcicState(jcicParam);
-          const memberData = await getMemberProfile(jcicParam);
-          if (memberData && memberData.success) {
-            setUser(memberData.data);
+
+          if (isOnline) {
+            const memberData = await getMemberProfile(jcicParam);
+            if (memberData && memberData.success) {
+              setUser(memberData.data);
+              await AsyncStorage.setItem('profileData', JSON.stringify(memberData.data));
+            } else {
+              setUser(null);
+            }
           } else {
-            setUser(null);
+            const storedData = await AsyncStorage.getItem('profileData');
+            if (storedData) {
+              setUser(JSON.parse(storedData));
+            } else {
+              setUser(null);
+            }
           }
         } else {
           setUser(null);
@@ -46,8 +61,17 @@ const Profile = () => {
       }
       setLoading(false);
     };
-    getJCIC();
-  }, [route.params?.JCIC]);
+
+    fetchData();
+  }, [route.params?.JCIC, isOnline]);
+
+  // Business modal/form
+  const [bizModal, setBizModal] = useState(false);
+  const [bizForm, setBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+  const [editBizIndex, setEditBizIndex] = useState(null);
+  const [editBizForm, setEditBizForm] = useState({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+
+  const [photoModal, setPhotoModal] = useState(false);
 
   // Business Functions
   const handleAddBusiness = async () => {
@@ -77,14 +101,19 @@ const Profile = () => {
       address: bizForm.address,
     };
 
-    const result = await addMemberBusiness(jcicState, businessData);
-    if (result.success) {
-      setUser(prev => ({ ...prev, business: result.data }));
-      setBizModal(false);
-      setBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-      Alert.alert('Success', 'Business added successfully');
+    if (isOnline) {
+      const result = await addMemberBusiness(jcicState, businessData);
+      if (result.success) {
+        setUser(prev => ({ ...prev, business: result.data }));
+        await AsyncStorage.setItem('profileData', JSON.stringify({ ...user, business: result.data }));
+        setBizModal(false);
+        setBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+        Alert.alert('Success', 'Business added successfully');
+      } else {
+        Alert.alert('Error', 'Failed to add business');
+      }
     } else {
-      Alert.alert('Error', 'Failed to add business');
+      Alert.alert('Error', 'Cannot add business while offline.');
     }
   };
 
@@ -129,15 +158,20 @@ const Profile = () => {
       address: editBizForm.address,
     };
 
-    const result = await updateBusinessByIndex(jcicState, editBizIndex, businessData);
-    if (result.success) {
-      setUser(prev => ({ ...prev, business: result.data }));
-      setEditBizIndex(null);
-      setBizModal(false);
-      setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-      Alert.alert('Success', 'Business updated successfully');
+    if (isOnline) {
+      const result = await updateBusinessByIndex(jcicState, editBizIndex, businessData);
+      if (result.success) {
+        setUser(prev => ({ ...prev, business: result.data }));
+        await AsyncStorage.setItem('profileData', JSON.stringify({ ...user, business: result.data }));
+        setEditBizIndex(null);
+        setBizModal(false);
+        setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+        Alert.alert('Success', 'Business updated successfully');
+      } else {
+        Alert.alert('Error', 'Failed to update business');
+      }
     } else {
-      Alert.alert('Error', 'Failed to update business');
+      Alert.alert('Error', 'Cannot update business while offline.');
     }
   };
 
@@ -151,15 +185,20 @@ const Profile = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            const result = await deleteMemberBusiness(jcicState, editBizIndex);
-            if (result.success) {
-              setUser(prev => ({ ...prev, business: result.data }));
-              setEditBizIndex(null);
-              setBizModal(false);
-              setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
-              Alert.alert('Success', 'Business deleted successfully');
+            if (isOnline) {
+              const result = await deleteMemberBusiness(jcicState, editBizIndex);
+              if (result.success) {
+                setUser(prev => ({ ...prev, business: result.data }));
+                await AsyncStorage.setItem('profileData', JSON.stringify({ ...user, business: result.data }));
+                setEditBizIndex(null);
+                setBizModal(false);
+                setEditBizForm({ name: '', description: '', services: '', contactPhone: '', contactEmail: '', address: '' });
+                Alert.alert('Success', 'Business deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete business');
+              }
             } else {
-              Alert.alert('Error', 'Failed to delete business');
+              Alert.alert('Error', 'Cannot delete business while offline.');
             }
           },
         },
